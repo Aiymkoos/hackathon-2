@@ -109,6 +109,43 @@ function findCorners(pts) {
   return corners.map(c => ({ i: c.i, x: pts[c.i].x, y: pts[c.i].y, angle: c.angle }));
 }
 
+
+function distToSeg(p, a, b) {
+  const vx = b.x - a.x, vy = b.y - a.y;
+  const l2 = vx * vx + vy * vy || 1;
+  const t = Math.max(0, Math.min(1, ((p.x - a.x) * vx + (p.y - a.y) * vy) / l2));
+  return Math.hypot(p.x - (a.x + t * vx), p.y - (a.y + t * vy));
+}
+
+// Насколько точки лежат на ломаной verts (доли размера фигуры): среднее и максимум.
+function polyFit(pts, verts, closed, size) {
+  const segs = [];
+  for (let i = 1; i < verts.length; i++) segs.push([verts[i - 1], verts[i]]);
+  if (closed) segs.push([verts[verts.length - 1], verts[0]]);
+  let sum = 0, max = 0;
+  for (const p of pts) {
+    const d = Math.min(...segs.map(([a, b]) => distToSeg(p, a, b)));
+    sum += d;
+    max = Math.max(max, d);
+  }
+  return { mean: sum / pts.length / size, max: max / size };
+}
+
+// Три вершины самого большого треугольника, вписанного в штрих.
+function bestTriangle(pts) {
+  let a = pts[0], b = pts[0], best = 0;
+  for (const p of pts) for (const q of pts) {
+    const d = dist(p, q);
+    if (d > best) { best = d; a = p; b = q; }
+  }
+  let c = pts[0], far = 0;
+  for (const p of pts) {
+    const d = distToSeg(p, a, b);
+    if (d > far) { far = d; c = p; }
+  }
+  return [a, b, c];
+}
+
 export function analyzeStroke(raw) {
   if (!raw || raw.length < 6) return null;
   const sm = smooth(raw);
@@ -139,9 +176,33 @@ export function analyzeStroke(raw) {
   const perimeter = pathLength(pts) + dist(start, end);
   const roundness = perimeter > 0 ? (4 * Math.PI * area) / (perimeter * perimeter) : 0;
 
+  // Ровность круга: разброс расстояний до центра (0 — идеальный круг).
+  const cx = pts.reduce((a, p) => a + p.x, 0) / N, cy = pts.reduce((a, p) => a + p.y, 0) / N;
+  const radii = pts.map(p => Math.hypot(p.x - cx, p.y - cy));
+  const rMean = radii.reduce((a, r) => a + r, 0) / N || 1;
+  const radiusCV = Math.sqrt(radii.reduce((a, r) => a + (r - rMean) ** 2, 0) / N) / rMean;
+
+  // Похожесть на треугольник: насколько линия идёт вдоль сторон вписанного треугольника.
+  const tri = bestTriangle(pts);
+  const triFit = polyFit(pts, tri, true, size);
+  const triMinSide = Math.min(dist(tri[0], tri[1]), dist(tri[1], tri[2]), dist(tri[2], tri[0])) / size;
+
+  // Для галочки и молнии: насколько линия прямая между изломами.
+  const lineFit = polyFit(pts, [start, ...corners, end], false, size);
+
+  // Молния: три отрезка сверху вниз, по горизонтали туда-сюда-туда, каждый заметной длины.
+  const zv = [start, ...corners, end];
+  const zseg = zv.slice(1).map((q, i) => ({ dx: q.x - zv[i].x, dy: q.y - zv[i].y }));
+  const zigzagShape = corners.length === 2
+    && end.y - start.y > 0.5 * size
+    && zseg.every(v => v.dy > -0.1 * size && Math.hypot(v.dx, v.dy) > 0.25 * size)
+    && Math.sign(zseg[0].dx) === Math.sign(zseg[2].dx) && Math.sign(zseg[1].dx) === -Math.sign(zseg[0].dx);
+
   const c = corners[0];
   return {
-    roundness,
+    roundness, radiusCV, triFit, triMinSide, lineFit, zigzagShape,
+    // обороты с учётом поворота в точке замыкания (важно, если начали с угла)
+    loops: Math.abs(totalTurn + turn(sub(end, pts[N - 2]), sub(pts[1], start))) / (2 * Math.PI),
     pts, size, w, h, gap,
     bbox: { x: minX, y: minY, w, h, cx: minX + w / 2, cy: minY + h / 2 },
     start, end,
@@ -157,15 +218,24 @@ export function analyzeStroke(raw) {
   };
 }
 
-export function classify(f) {
+// Пороги: обычные — для проверки после остановки, строгие — для мгновенной атаки.
+const FIT = {
+  normal: { gap: CLOSED_GAP, circleCV: 0.2, triMean: 0.07, triMax: 0.2, line: 0.08 },
+  strict: { gap: 0.28, circleCV: 0.15, triMean: 0.055, triMax: 0.16, line: 0.06 },
+};
+
+export function classify(f, strict = false) {
+  const t = strict ? FIT.strict : FIT.normal;
   const nc = f.corners.length;
-  if (f.closed) {
-    if (f.roundness >= ROUND && f.aspect > 0.5) return 'circle';
-    if (f.roundness < ROUND && f.roundness > 0.35 && f.aspect > 0.5) return 'triangle';
+  const oneLoop = f.loops > 0.75 && f.loops < 1.35;
+  if (f.gap < t.gap) {
+    if (f.roundness >= ROUND && f.aspect > 0.5 && f.radiusCV < t.circleCV && oneLoop) return 'circle';
+    if (f.roundness < ROUND && f.aspect > 0.5 && oneLoop && f.triMinSide > 0.35
+      && f.triFit.mean < t.triMean && f.triFit.max < t.triMax) return 'triangle';
     return null;
   }
-  if (nc === 1 && f.cornerLow && f.spread > 0.3) return 'vee';
-  if ((nc === 2 || nc === 3) && f.alternating) return 'zigzag';
+  if (nc === 1 && f.cornerLow && f.spread > 0.3 && f.lineFit.mean < t.line) return 'vee';
+  if (nc === 2 && f.alternating && f.zigzagShape && f.lineFit.mean < t.line && f.lineFit.max < t.line * 2.5) return 'zigzag';
   return null;
 }
 
@@ -193,17 +263,24 @@ export function diagnose(f, id) {
     case 'circle':
       if (!f.closed) return err('open', 'Круг не замкнут — доведи палец до точки, где начал', [gapMark(f)]);
       if (f.aspect <= 0.5) return err('squashed', 'Круг сплющен — рисуй одинаково в ширину и в высоту');
+      if (f.loops >= 1.35) return err('tooManyCorners', 'Ты обвёл больше одного круга — нужен ровно один оборот');
       if (f.roundness < ROUND) return err('angular', 'Слишком угловато — веди палец по плавной дуге, без резких поворотов', cornerMarks(f));
+      if (f.radiusCV >= FIT.normal.circleCV) return err('squashed', 'Круг неровный — веди палец плавно, на одном расстоянии от центра');
       break;
     case 'triangle':
       if (!f.closed) return err('open', 'Треугольник не замкнут — верни палец к первому углу', [gapMark(f)]);
       if (f.roundness >= ROUND) return err('noCorners', 'Получился круг — веди стороны прямее, на углах поворачивай');
+      if (f.triFit.mean >= FIT.normal.triMean || f.triFit.max >= FIT.normal.triMax || f.triMinSide <= 0.35) {
+        return err('unclear', 'Стороны кривые — веди палец прямо от угла к углу, всего три стороны');
+      }
       break;
     case 'zigzag':
       if (f.closed) return err('closedZigzag', 'Молния не замыкается — веди сверху вниз: ↘ ↙ ↘', [gapMark(f)]);
       if (nc < 2) return err('noCorners', 'Нужно 2 излома: вправо-вниз, влево-вниз, вправо-вниз', cornerMarks(f));
       if (nc > 3) return err('tooManyCorners', `Слишком много изломов (${nc}) — нужно всего 2`, cornerMarks(f));
       if (!f.alternating) return err('notAlternating', 'Изломы должны чередоваться: вправо, влево, вправо', cornerMarks(f));
+      if (!f.zigzagShape) return err('notAlternating', 'Веди молнию сверху вниз: вправо, влево, вправо — три прямых отрезка', cornerMarks(f));
+      if (f.lineFit.mean >= FIT.normal.line) return err('unclear', 'Линии кривые — веди палец прямо между изломами');
       break;
     case 'vee':
       if (f.closed) return err('open', 'Галочка не замыкается — вниз и снова вверх', [gapMark(f)]);
@@ -211,6 +288,7 @@ export function diagnose(f, id) {
       if (nc > 1) return err('tooManyCorners', `У галочки один угол, а у тебя ${nc} — рисуй двумя прямыми`, cornerMarks(f));
       if (!f.cornerLow) return err('cornerNotLow', 'Угол должен быть внизу, а оба конца — сверху', cornerMarks(f));
       if (f.spread <= 0.3) return err('narrowVee', 'Разведи концы галочки шире', [gapMark(f)]);
+      if (f.lineFit.mean >= FIT.normal.line) return err('unclear', 'Стороны галочки кривые — веди палец прямо вниз и прямо вверх');
       break;
   }
   return err('unclear', `Почти! Сравни с образцом руны «${RUNES[id].name}»`);
@@ -221,7 +299,7 @@ export function diagnose(f, id) {
  * raw: [{x, y, t}] в пикселях экрана; minSize — минимальный размер руны в px;
  * expected — какие руны сейчас нужны (по ним строится подсказка).
  */
-export function recognize(raw, { minSize = 0, expected = RUNE_IDS } = {}) {
+export function recognize(raw, { minSize = 0, expected = RUNE_IDS, strict = false } = {}) {
   const f = analyzeStroke(raw);
   if (!f) return { ok: false, features: null, target: null, error: err('short', 'Слишком короткий штрих — нарисуй руну целиком') };
   if (f.size < minSize) {
@@ -232,7 +310,8 @@ export function recognize(raw, { minSize = 0, expected = RUNE_IDS } = {}) {
   }
 
   const wanted = expected.length ? expected : RUNE_IDS;
-  const rune = classify(f);
+  if (strict && f.duration > 0 && f.duration < 0.35) return { ok: false, features: f, target: null, error: err('fast', '') };
+  const rune = classify(f, strict);
   if (rune && wanted.includes(rune)) return { ok: true, rune, features: f };
 
   const target = wanted.reduce((best, id) => (similarity(f, id) > similarity(f, best) ? id : best), wanted[0]);
