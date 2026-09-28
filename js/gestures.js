@@ -30,7 +30,7 @@ export function fingerStates(lm) {
   const wrist = lm[0];
   return FINGERS.map(f => {
     const r = d(lm[f.tip], wrist) / d(lm[f.pip], wrist);
-    return r > 1.18 ? 'ext' : r < 1.05 ? 'curl' : 'half';
+    return r > 1.15 ? 'ext' : r < 1.08 ? 'curl' : 'half';
   });
 }
 
@@ -44,9 +44,10 @@ export function classifyHand(lm) {
   const thumbOut = d(lm[4], lm[9]) / scale > 0.72;
   const namesWhere = test => FINGERS.filter((_, i) => test(st[i], i)).map(f => f.name);
 
-  if (nExt === 4) return { pose: POSE.PALM };
-  if (index === 'ext' && others.every(s => s === 'curl')) return { pose: POSE.POINT };
-  if (nCurl === 4) {
+  // Правила с запасом: живая рука редко сгибает пальцы идеально.
+  if (nExt === 4 || (nExt === 3 && nCurl === 0)) return { pose: POSE.PALM };
+  if (index === 'ext' && others.every(s => s !== 'ext') && others.filter(s => s === 'curl').length >= 2) return { pose: POSE.POINT };
+  if (nExt === 0 && nCurl >= 3) {
     const thumbUp = thumbOut && lm[4].y < lm[5].y - 0.35 * scale && lm[4].y < lm[3].y;
     return { pose: thumbUp ? POSE.THUMB : POSE.FIST };
   }
@@ -67,3 +68,12 @@ export function classifyHand(lm) {
   }
   return { pose: POSE.OTHER };
 }
+
+export const POSE_NAMES = {
+  [POSE.POINT]: 'палец — рисую',
+  [POSE.PALM]: 'ладонь',
+  [POSE.FIST]: 'кулак',
+  [POSE.THUMB]: 'большой палец вверх',
+  [POSE.OTHER]: 'жест не распознан',
+  [POSE.NONE]: 'руки не видно',
+};

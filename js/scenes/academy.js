@@ -1,4 +1,5 @@
 // Академия: пошаговое обучение каждому жесту с подсказками об ошибках.
+import { C, drawGem, drawIcon } from '../theme.js';
 import { POSE } from '../gestures.js';
 import { RUNES, recognize } from '../runes.js';
 import { FRAMING_HINTS } from '../input.js';
@@ -22,8 +23,8 @@ export class AcademyScene {
   constructor(app) {
     this.app = app;
     this.doneButtons = [
-      new DwellButton('⚔  В бой', () => app.go('battle'), { color: '#ff8a3d' }),
-      new DwellButton('↩  Меню', () => app.go('menu'), { color: '#8b7dff' }),
+      new DwellButton('В бой', () => app.go('battle'), { color: C.amber }),
+      new DwellButton('Меню', () => app.go('menu'), { color: C.gold }),
     ];
   }
 
@@ -45,7 +46,7 @@ export class AcademyScene {
     this.successT = 1.1;
     this.app.sfx.success();
     const { W, H } = this.app;
-    this.app.fx.burst(W / 2, H * 0.3, '#7dff9b', 50, 400);
+    this.app.fx.burst(W / 2, H * 0.3, C.teal, 50, 400);
     this.app.toast.clear();
   }
 
@@ -121,7 +122,7 @@ export class AcademyScene {
         if (e.type === 'push') {
           if (this.charge >= 1) {
             this.app.sfx.boom();
-            this.app.fx.flash('#ffd166', 0.5);
+            this.app.fx.flash(C.amber, 0.5);
             this.app.fx.shake(18, 0.4);
             this.pass();
           } else {
@@ -140,8 +141,8 @@ export class AcademyScene {
   render(ctx) {
     const { W, H, minDim, time, input } = this.app;
     if (this.finished) {
-      label(ctx, 'Академия пройдена!', W / 2, H * 0.25, { size: minDim * 0.08, weight: 800, color: '#7dff9b' });
-      label(ctx, 'Ты знаешь все руны. Пора в бой · 👍', W / 2, H * 0.25 + minDim * 0.08, { size: minDim * 0.035, color: '#cfc4ff' });
+      label(ctx, 'Академия пройдена!', W / 2, H * 0.25, { size: minDim * 0.08, weight: 700, title: true, color: C.teal });
+      label(ctx, 'Ты знаешь все руны. Пора в бой', W / 2, H * 0.25 + minDim * 0.08, { size: minDim * 0.035, color: C.muted });
       for (const b of this.doneButtons) b.render(ctx);
       return;
     }
@@ -152,43 +153,54 @@ export class AcademyScene {
     const ch = minDim * 0.17;
     const cx = (W - cw) / 2;
     const cy = 16;
-    roundRect(ctx, cx, cy, cw, ch, 18);
-    ctx.fillStyle = 'rgba(15,8,40,0.8)';
+    roundRect(ctx, cx, cy, cw, ch, 10);
+    ctx.fillStyle = C.surface;
     ctx.fill();
-    label(ctx, `Шаг ${this.step + 1} из ${STEPS.length}`, cx + cw / 2, cy + ch * 0.2, { size: ch * 0.14, color: '#8b7dff', outline: false });
-    label(ctx, s.title, cx + cw / 2, cy + ch * 0.46, { size: ch * 0.22, weight: 800, outline: false });
-    label(ctx, s.text, cx + cw / 2, cy + ch * 0.76, { size: Math.min(ch * 0.15, (cw / s.text.length) * 1.7), weight: 500, color: '#e6ddff', outline: false });
+    ctx.strokeStyle = C.line;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    label(ctx, `Шаг ${this.step + 1} из ${STEPS.length}`, cx + cw / 2, cy + ch * 0.2, { size: ch * 0.12, weight: 700, color: C.gold, outline: false });
+    label(ctx, s.title, cx + cw / 2, cy + ch * 0.46, { size: ch * 0.22, weight: 700, title: true, outline: false });
+    label(ctx, s.text, cx + cw / 2, cy + ch * 0.76, { size: Math.min(ch * 0.15, (cw / s.text.length) * 1.7), weight: 500, color: C.ivory, outline: false });
 
     // полоска прогресса по шагам
     const pw = cw / STEPS.length;
     STEPS.forEach((_, i) => {
-      ctx.fillStyle = i < this.step ? '#7dff9b' : i === this.step ? '#8b7dff' : 'rgba(255,255,255,0.15)';
-      ctx.fillRect(cx + i * pw + 3, cy + ch + 8, pw - 6, 5);
+      ctx.fillStyle = i < this.step ? C.teal : i === this.step ? C.gold : 'rgba(239,230,210,0.15)';
+      ctx.fillRect(cx + i * pw + 3, cy + ch + 8, pw - 6, 3);
     });
 
-    // образец руны с «пишущим» огоньком
+    // образец справа: руна с «пишущим» огоньком или значок жеста
+    const size = minDim * 0.16;
+    const ox = W - size * 0.9 - 20;
+    const oy = cy + ch + size * 0.85;
+    roundRect(ctx, ox - size * 0.75, oy - size * 0.75, size * 1.5, size * 1.5, 10);
+    ctx.fillStyle = C.surface;
+    ctx.fill();
+    ctx.strokeStyle = C.line;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    label(ctx, 'ОБРАЗЕЦ', ox, oy - size * 0.6, { size: 11, weight: 700, color: C.gold, outline: false });
     if (s.kind === 'rune') {
-      const size = minDim * 0.16;
-      const ox = W - size * 0.9 - 20;
-      const oy = cy + ch + size * 0.85;
-      roundRect(ctx, ox - size * 0.75, oy - size * 0.75, size * 1.5, size * 1.5, 16);
-      ctx.fillStyle = 'rgba(15,8,40,0.6)';
-      ctx.fill();
-      label(ctx, 'образец', ox, oy - size * 0.62, { size: 14, color: '#cfc4ff', outline: false });
-      drawRune(ctx, s.rune, ox, oy + 6, size * 0.8, { alpha: 0.3, width: 3, glow: false });
+      drawRune(ctx, s.rune, ox, oy + 6, size * 0.8, { alpha: 0.25, width: 2, glow: false });
       const p = (time * 0.5) % 1.2;
-      const end = drawRune(ctx, s.rune, ox, oy + 6, size * 0.8, { width: 4, progress: Math.min(1, p) });
-      ctx.fillStyle = '#fff';
+      const end = drawRune(ctx, s.rune, ox, oy + 6, size * 0.8, { width: 3, progress: Math.min(1, p) });
+      ctx.fillStyle = C.ivory;
       ctx.beginPath();
-      ctx.arc(end.x, end.y, 6, 0, Math.PI * 2);
+      ctx.arc(end.x, end.y, 4, 0, Math.PI * 2);
       ctx.fill();
+    } else {
+      const icon = s.kind === 'push' ? 'palm' : s.pose === POSE.FIST ? 'fist' : 'point';
+      // толчок показываем «приближением» значка
+      const k = s.kind === 'push' ? 1 + 0.25 * Math.max(0, Math.sin(time * 3)) : 1;
+      drawIcon(ctx, icon, ox, oy + 8, size * 0.75 * k, C.ivory, 1.4);
     }
 
     if (s.kind === 'pose' && this.hold > 0) {
-      label(ctx, `${Math.round((this.hold / HOLD) * 100)}%`, W / 2, H * 0.55, { size: minDim * 0.08, weight: 800, color: '#7dff9b' });
+      label(ctx, `${Math.round((this.hold / HOLD) * 100)}%`, W / 2, H * 0.55, { size: minDim * 0.08, weight: 700, title: true, color: C.teal });
     }
     if (s.kind === 'push' && input.present) drawManaOrb(ctx, input.palm.x, input.palm.y, this.charge, minDim, time);
 
-    if (this.successT > 0) label(ctx, 'Отлично!', W / 2, H * 0.45, { size: minDim * 0.1, weight: 800, color: '#7dff9b' });
+    if (this.successT > 0) label(ctx, 'Отлично!', W / 2, H * 0.45, { size: minDim * 0.1, weight: 700, title: true, color: C.teal });
   }
 }

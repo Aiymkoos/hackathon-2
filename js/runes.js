@@ -19,10 +19,10 @@ function circlePath(n = 32) {
 }
 
 export const RUNES = {
-  circle:   { id: 'circle',   name: 'Круг',        spell: 'Лёд',   color: '#6ee7ff', path: circlePath() },
-  triangle: { id: 'triangle', name: 'Треугольник', spell: 'Огонь', color: '#ff8a3d', path: [[0, -0.5], [0.5, 0.43], [-0.5, 0.43], [0, -0.5]] },
-  zigzag:   { id: 'zigzag',   name: 'Молния',      spell: 'Гроза', color: '#ffe14d', path: [[-0.3, -0.5], [0.3, -0.17], [-0.3, 0.17], [0.3, 0.5]] },
-  vee:      { id: 'vee',      name: 'Галочка',     spell: 'Ветер', color: '#7dff9b', path: [[-0.45, -0.4], [0, 0.45], [0.45, -0.4]] },
+  circle:   { id: 'circle',   name: 'Круг',        spell: 'Лёд',   color: '#7fd6c8', path: circlePath() },
+  triangle: { id: 'triangle', name: 'Треугольник', spell: 'Огонь', color: '#e0913f', path: [[0, -0.5], [0.5, 0.43], [-0.5, 0.43], [0, -0.5]] },
+  zigzag:   { id: 'zigzag',   name: 'Молния',      spell: 'Гроза', color: '#e6cf73', path: [[-0.3, -0.5], [0.3, -0.17], [-0.3, 0.17], [0.3, 0.5]] },
+  vee:      { id: 'vee',      name: 'Галочка',     spell: 'Ветер', color: '#a9c98b', path: [[-0.45, -0.4], [0, 0.45], [0.45, -0.4]] },
 };
 export const RUNE_IDS = Object.keys(RUNES);
 

@@ -118,7 +118,7 @@ export class Effects {
     for (const t of this.texts) {
       const k = t.life / t.max;
       ctx.globalAlpha = Math.min(1, k * 2);
-      ctx.font = `800 ${t.size}px Rubik, sans-serif`;
+      ctx.font = `700 ${t.size}px "Cormorant Garamond", Georgia, serif`;
       ctx.fillStyle = t.color;
       ctx.strokeStyle = 'rgba(0,0,0,0.6)';
       ctx.lineWidth = 4;
