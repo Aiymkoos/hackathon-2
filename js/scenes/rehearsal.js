@@ -1,4 +1,5 @@
 // Репетиция: пошаговое обучение каждому движению с подсказками об ошибках.
+import { C } from '../theme.js';
 import { FRAMING_HINTS, aimAt, dynamicOf } from '../conductor.js';
 import { SECTIONS } from '../piece.js';
 import { DwellButton, label, roundRect } from '../ui.js';
@@ -21,8 +22,8 @@ export class RehearsalScene {
   constructor(app) {
     this.app = app;
     this.doneButtons = [
-      new DwellButton('🎼  На концерт', () => app.go('concert'), { color: '#ffd166' }),
-      new DwellButton('↩  Меню', () => app.go('menu'), { color: '#8b7dff' }),
+      new DwellButton('На концерт', () => app.go('concert'), { color: C.gold }),
+      new DwellButton('Меню', () => app.go('menu'), { color: C.gold }),
     ];
   }
 
@@ -45,7 +46,7 @@ export class RehearsalScene {
     const { orchestra, fx, W, H, toast } = this.app;
     this.successT = 1.1;
     [72, 76, 79].forEach(m => orchestra.play('flutes', m, 0.6));
-    fx.burst(W / 2, H * 0.35, '#7dff9b', 50, 400);
+    fx.burst(W / 2, H * 0.35, C.ok, 50, 400);
     toast.clear();
   }
 
@@ -167,8 +168,8 @@ export class RehearsalScene {
     }
     this.toastBottom = undefined;
     if (this.finished) {
-      label(ctx, 'Репетиция пройдена!', W / 2, H * 0.32, { size: minDim * 0.08, weight: 800, color: '#7dff9b' });
-      label(ctx, 'Оркестр готов. Пора на сцену', W / 2, H * 0.32 + minDim * 0.08, { size: minDim * 0.035, color: '#e6ddff' });
+      label(ctx, 'Репетиция пройдена!', W / 2, H * 0.32, { size: minDim * 0.08, weight: 700, title: true, color: C.ok });
+      label(ctx, 'Оркестр готов. Пора на сцену', W / 2, H * 0.32 + minDim * 0.08, { size: minDim * 0.035, color: C.cream });
       for (const b of this.doneButtons) b.render(ctx);
       return;
     }
@@ -185,19 +186,19 @@ export class RehearsalScene {
     const cx = (W - cw) / 2, cy = H - ch - 24;
     this.toastBottom = cy - 16;
     roundRect(ctx, cx, cy, cw, ch, 18);
-    ctx.fillStyle = 'rgba(15,8,40,0.82)';
+    ctx.fillStyle = C.surface;
     ctx.fill();
-    label(ctx, `Шаг ${this.step + 1} из ${STEPS.length}`, W / 2, cy + ch * 0.18, { size: ch * 0.13, color: '#8b7dff', outline: false });
-    label(ctx, s.title, W / 2, cy + ch * 0.44, { size: ch * 0.22, weight: 800, outline: false });
-    label(ctx, s.text, W / 2, cy + ch * 0.76, { size: Math.min(ch * 0.14, (cw / s.text.length) * 1.75), weight: 500, color: '#e6ddff', outline: false });
+    label(ctx, `Шаг ${this.step + 1} из ${STEPS.length}`, W / 2, cy + ch * 0.18, { size: ch * 0.13, color: C.gold, outline: false });
+    label(ctx, s.title, W / 2, cy + ch * 0.44, { size: ch * 0.22, weight: 700, title: true, outline: false });
+    label(ctx, s.text, W / 2, cy + ch * 0.76, { size: Math.min(ch * 0.14, (cw / s.text.length) * 1.75), weight: 500, color: C.cream, outline: false });
     const pw = cw / STEPS.length;
     STEPS.forEach((_, i) => {
-      ctx.fillStyle = i < this.step ? '#7dff9b' : i === this.step ? '#8b7dff' : 'rgba(255,255,255,0.15)';
+      ctx.fillStyle = i < this.step ? C.ok : i === this.step ? C.gold : 'rgba(243,230,207,0.15)';
       ctx.fillRect(cx + i * pw + 3, cy + ch - 9, pw - 6, 4);
     });
     const goal = { beat: 4, forte: 3, piano: 3 }[s.id];
-    if (goal) label(ctx, `${this.count}/${goal}`, cx + cw - 16, cy + ch * 0.2, { size: ch * 0.18, weight: 800, color: '#ffd166', align: 'right', outline: false });
+    if (goal) label(ctx, `${this.count}/${goal}`, cx + cw - 16, cy + ch * 0.2, { size: ch * 0.18, weight: 700, title: true, color: C.gold, align: 'right', outline: false });
 
-    if (this.successT > 0) label(ctx, 'Отлично!', W / 2, H * 0.45, { size: minDim * 0.1, weight: 800, color: '#7dff9b' });
+    if (this.successT > 0) label(ctx, 'Отлично!', W / 2, H * 0.45, { size: minDim * 0.1, weight: 700, title: true, color: C.ok });
   }
 }

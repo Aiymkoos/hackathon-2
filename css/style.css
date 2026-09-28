@@ -1,12 +1,22 @@
+:root {
+  --night: #0c0608;
+  --line: rgba(212, 168, 75, 0.45);
+  --gold: #d4a84b;
+  --cream: #f3e6cf;
+  --muted: #b9a58a;
+  --title: "Playfair Display", Georgia, serif;
+  --body: Manrope, system-ui, sans-serif;
+}
+
 * { box-sizing: border-box; }
 
 html, body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #0b0620;
-  color: #f3e8ff;
-  font-family: Rubik, system-ui, sans-serif;
+  background: var(--night);
+  color: var(--cream);
+  font-family: var(--body);
 }
 
 #stage {
@@ -29,66 +39,107 @@ html, body {
 .overlay {
   position: fixed;
   inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 16px;
-  background: radial-gradient(circle at 50% 30%, #2a1670 0%, #0b0620 70%);
+  background: var(--night);
+  overflow-y: auto;
 }
 
 .overlay[hidden] { display: none; }
 
-.card {
-  width: min(560px, 100%);
-  padding: 32px 28px;
-  border-radius: 24px;
-  background: rgba(20, 10, 55, 0.85);
-  border: 1px solid rgba(139, 125, 255, 0.4);
-  box-shadow: 0 0 60px rgba(139, 125, 255, 0.25);
-  text-align: center;
+.scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Текст стоит между левым занавесом и лучом прожектора. */
+.intro {
+  position: relative;
+  max-width: calc(460px + clamp(16px, 21vw, 340px));
+  min-height: 100%;
+  padding: 72px 16px 32px clamp(16px, 21vw, 340px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.kicker {
+  margin: 0 0 6px;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
 
 h1 {
   margin: 0;
-  font-size: clamp(40px, 10vw, 64px);
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-shadow: 0 0 30px #ffd166;
+  font: italic 700 clamp(52px, 10vw, 88px) / 1 var(--title);
 }
 
-.sub { margin: 8px 0 20px; color: #cfc4ff; font-size: 17px; }
+.tagline {
+  margin: 8px 0 0;
+  font: italic 500 clamp(19px, 3.2vw, 24px) / 1.25 var(--title);
+  color: var(--gold);
+}
 
-.howto {
+.lead {
+  margin: 14px 0 22px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.gestures {
   list-style: none;
-  margin: 0 0 24px;
+  margin: 0 0 26px;
   padding: 0;
-  text-align: left;
   display: grid;
   gap: 10px;
-  font-size: 16px;
 }
 
-.howto span { display: inline-block; width: 32px; font-size: 20px; }
+.gestures li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.gestures svg {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  fill: none;
+  stroke: var(--cream);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 
 #startBtn {
-  width: 100%;
-  padding: 16px;
-  border: 0;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #8b7dff, #ffb020);
-  color: #fff;
-  font: 700 19px Rubik, sans-serif;
+  align-self: flex-start;
+  padding: 14px 30px;
+  border: 1px solid var(--gold);
+  border-radius: 6px;
+  background: rgba(24, 10, 13, 0.75);
+  color: var(--cream);
+  font: italic 600 20px var(--title);
   cursor: pointer;
+  transition: background 0.2s;
+}
+
+#startBtn:hover, #startBtn:focus-visible {
+  background: rgba(212, 168, 75, 0.16);
+  outline: none;
 }
 
 #startBtn:disabled { opacity: 0.6; cursor: wait; }
 
-.note { margin: 14px 0 0; color: #a99fd6; font-size: 14px; }
-
 .progress {
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  overflow: hidden;
+  width: min(260px, 100%);
+  height: 2px;
+  margin-top: 18px;
+  background: rgba(243, 230, 207, 0.12);
 }
 
 .progress[hidden] { display: none; }
@@ -96,8 +147,31 @@ h1 {
 #loadBar {
   width: 0;
   height: 100%;
-  background: linear-gradient(90deg, #8b7dff, #ffd166);
+  background: var(--gold);
   transition: width 0.2s;
 }
 
-.load { margin: 8px 0 16px; color: #cfc4ff; font-size: 14px; }
+.load { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+.note { margin: 6px 0 0; color: #8a7760; font-size: 12px; }
+
+/* Палочка качается, ноты поднимаются, луч мягко дышит. */
+.baton { transform-origin: 1080px 560px; animation: conduct 1.2s ease-in-out infinite alternate; }
+.notes { animation: rise 4s ease-in-out infinite; }
+.beam { animation: breathe 5s ease-in-out infinite; }
+
+@keyframes conduct { from { transform: rotate(-12deg); } to { transform: rotate(14deg); } }
+@keyframes rise { 0% { transform: translateY(10px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(-40px); opacity: 0; } }
+@keyframes breathe { 50% { opacity: 0.7; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .baton, .notes, .beam { animation: none; }
+}
+
+@media (max-width: 700px) {
+  .intro {
+    max-width: none;
+    justify-content: flex-end;
+    padding: 32px 16px 28px;
+    background: linear-gradient(to top, rgba(12, 6, 8, 0.96) 60%, rgba(12, 6, 8, 0));
+  }
+}

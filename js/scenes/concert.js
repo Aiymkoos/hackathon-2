@@ -1,5 +1,6 @@
 // Концерт: дирижёр ведёт «Оду к радости» — темп, громкость, вступления,
 // фермата и снятие. Режим «ошибка» — конкретные подсказки по каждому движению.
+import { C } from '../theme.js';
 import { FRAMING_HINTS, aimAt, dynamicOf } from '../conductor.js';
 import { PIECE, SECTIONS, MARK_NAMES, barOf, markAt } from '../piece.js';
 import { Performance } from '../music.js';
@@ -170,7 +171,7 @@ export class ConcertScene {
     const result = this.result();
     this.resultData = result;
     orchestra.applause(5, 0.4 + result.total / 100);
-    for (let i = 0; i < 6; i++) setTimeout(() => fx.burst(W * (0.15 + 0.7 * Math.random()), H * (0.2 + 0.3 * Math.random()), ['#ffd166', '#6ee7ff', '#ff5a7a', '#7dff9b'][i % 4], 60, 500, 1.4), i * 300);
+    for (let i = 0; i < 6; i++) setTimeout(() => fx.burst(W * (0.15 + 0.7 * Math.random()), H * (0.2 + 0.3 * Math.random()), [C.gold, '#a8c8dc', C.danger, C.ok][i % 4], 60, 500, 1.4), i * 300);
   }
 
   result() {
@@ -281,27 +282,27 @@ export class ConcertScene {
     const mark = markAt(Math.max(0, this.perf.pos));
     const s = Math.max(14, minDim * 0.028);
     const now = conductor.dynamic;
-    label(ctx, now, W - 18, 34, { size: s * 1.6, weight: 800, align: 'right', color: DYN_COLORS[now] });
-    label(ctx, mark && this.phase === 'playing' ? `нужно: ${MARK_NAMES[mark]}` : 'громкость', W - 18, 34 + s * 1.2, { size: s * 0.6, weight: 500, align: 'right', color: mark && dynamicOf(conductor.level) !== mark && mark !== 'mf' ? '#ff8fa3' : '#cfc4ff' });
+    label(ctx, now, W - 18, 34, { size: s * 1.6, weight: 700, title: true, align: 'right', color: DYN_COLORS[now] });
+    label(ctx, mark && this.phase === 'playing' ? `нужно: ${MARK_NAMES[mark]}` : 'громкость', W - 18, 34 + s * 1.2, { size: s * 0.6, weight: 500, align: 'right', color: mark && dynamicOf(conductor.level) !== mark && mark !== 'mf' ? C.danger : C.muted });
 
     if (this.phase === 'ready') {
-      label(ctx, 'Первый взмах вниз — начало', W / 2, H * 0.5, { size: minDim * 0.06, weight: 800, color: '#fff4d6' });
-      label(ctx, `${PIECE.title} · ${PIECE.composer}`, W / 2, H * 0.5 + minDim * 0.06, { size: minDim * 0.03, color: '#cfc4ff' });
+      label(ctx, 'Первый взмах вниз — начало', W / 2, H * 0.5, { size: minDim * 0.06, weight: 700, title: true, color: C.cream });
+      label(ctx, `${PIECE.title} · ${PIECE.composer}`, W / 2, H * 0.5 + minDim * 0.06, { size: minDim * 0.03, color: C.muted });
     }
-    if (this.phase === 'finale' && !this.fermata) label(ctx, '🙌 Фермата!', W / 2, H * 0.45, { size: minDim * 0.08, weight: 800, color: '#ffd166' });
+    if (this.phase === 'finale' && !this.fermata) label(ctx, 'Фермата', W / 2, H * 0.45, { size: minDim * 0.08, weight: 700, title: true, color: C.gold });
     if (done) {
       const k = Math.min(1, this.doneT * 2);
       ctx.save();
       ctx.globalAlpha = k;
-      label(ctx, 'Браво!', W / 2, H * 0.42, { size: minDim * 0.14, weight: 800, color: '#ffd166' });
-      label(ctx, '★'.repeat(this.resultData.stars) + '☆'.repeat(5 - this.resultData.stars), W / 2, H * 0.42 + minDim * 0.11, { size: minDim * 0.06, color: '#ffd166' });
+      label(ctx, 'Браво!', W / 2, H * 0.42, { size: minDim * 0.14, weight: 700, title: true, color: C.gold });
+      label(ctx, '★'.repeat(this.resultData.stars) + '☆'.repeat(5 - this.resultData.stars), W / 2, H * 0.42 + minDim * 0.11, { size: minDim * 0.06, color: C.gold });
       ctx.restore();
     }
     if (this.phase === 'playing' && barOf(this.perf.pos) === 1 && this.perf.pos < 3) {
       roundRect(ctx, W / 2 - 120, H * 0.5 - 22, 240, 44, 22);
-      ctx.fillStyle = 'rgba(15,8,40,0.6)';
+      ctx.fillStyle = C.surface;
       ctx.fill();
-      label(ctx, 'Оркестр играет!', W / 2, H * 0.5, { size: 20, color: '#7dff9b', outline: false });
+      label(ctx, 'Оркестр играет!', W / 2, H * 0.5, { size: 20, color: C.ok, outline: false });
     }
   }
 }
