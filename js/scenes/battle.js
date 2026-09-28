@@ -264,6 +264,10 @@ export class BattleScene {
       if (this.phaseT <= 0) {
         this.phase = 'fight';
         if (wave.boss) this.spawnBoss();
+        else if (this.waveIdx === 1) {
+          this.shots.push({ x0: this.app.W / 2, y0: 120, t: 0, practice: true });
+          toast.show('Пробный огонь · сожми кулак, чтобы защитить печать', 'info', 3);
+        }
       }
     } else if (!wave.boss) {
       if (this.spawned < wave.count) {
@@ -325,7 +329,8 @@ export class BattleScene {
         fx.text(core.x, core.y - this.coreR * 1.8, 'Блок! +50', C.teal);
       } else {
         fx.burst(core.x, core.y, C.amber, 50, 400);
-        this.damage();
+        if (s.practice) toast.show('Это была тренировка. При следующем огне сожми кулак', 'info', 3);
+        else this.damage();
       }
     }
 
@@ -387,8 +392,8 @@ export class BattleScene {
   }
 
   renderOverlay(ctx) {
-    const { W, H, minDim } = this.app;
-    const s = Math.max(15, minDim * 0.03);
+    const { W, H, minDim, input } = this.app;
+    const s = Math.max(20, minDim * 0.03);
 
     // прочность печати
     label(ctx, 'ПЕЧАТЬ', 20, 22, { size: s * 0.5, weight: 700, color: C.muted, align: 'left', outline: false });
@@ -408,6 +413,17 @@ export class BattleScene {
     label(ctx, (this.wave?.title ?? '').toUpperCase(), W / 2, 24, { size: s * 0.55, weight: 700, color: C.gold, outline: false });
 
     this.drawLegend(ctx, s);
+    if (this.paused) {
+      ctx.fillStyle = 'rgba(3,12,17,0.65)';
+      ctx.fillRect(0, H * 0.32, W, H * 0.22);
+      label(ctx, input.present ? 'Продолжаем…' : 'Печать под защитой', W / 2, H * 0.4, { size: Math.max(24, minDim * 0.05), title: true, color: C.ivory });
+      label(ctx, input.present ? 'Приготовь руку' : 'Пауза · покажи руку камере', W / 2, H * 0.47, { size: Math.max(14, minDim * 0.022), color: C.gold });
+    }
+    // Progress toward dawn, including the boss's remaining seals.
+    const done = this.boss ? (7 - this.boss.queue.length) / 7 : this.wave?.count ? Math.max(0, this.spawned - this.monsters.length) / this.wave.count : 0;
+    const progress = Math.min(1, (this.waveIdx + done) / 4);
+    ctx.fillStyle = 'rgba(201,168,106,.15)'; ctx.fillRect(W * .36, 43, W * .28, 2);
+    ctx.fillStyle = C.gold; ctx.fillRect(W * .36, 43, W * .28 * progress, 2);
 
     if (this.phase === 'intro') {
       const k = Math.min(1, (2.4 - this.phaseT) * 3, this.phaseT * 3);
@@ -422,6 +438,14 @@ export class BattleScene {
   // Подсказка заклинаний: всегда видно, какой жест что делает.
   drawLegend(ctx, s) {
     const { W, H } = this.app;
+    if (W < 700) {
+      const ids = RUNE_IDS, y = 108, dx = (W - 32) / 6;
+      ctx.fillStyle = C.surface; roundRect(ctx, 12, y - 24, W - 24, 48, 8); ctx.fill();
+      ids.forEach((id, i) => drawRune(ctx, id, 16 + dx * (i + .5), y, 25, { glow: false, width: 2 }));
+      drawIcon(ctx, 'fist', 16 + dx * 4.5, y, 25, C.ivory);
+      drawIcon(ctx, 'palm', 16 + dx * 5.5, y, 25, C.gold);
+      return;
+    }
     const rows = [
       ...RUNE_IDS.map(id => ({ rune: id, text: `${RUNES[id].name} — ${RUNES[id].spell.toLowerCase()}` })),
       { icon: 'fist', text: 'Кулак — щит' },

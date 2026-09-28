@@ -4,6 +4,7 @@ const MAX_PARTICLES = 600;
 
 export class Effects {
   constructor() {
+    this.reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.particles = [];
     this.texts = [];
     this.beams = [];
@@ -42,11 +43,13 @@ export class Effects {
   }
 
   shake(mag = 12, dur = 0.3) {
+    if (this.reduced) return;
     this.shakeMag = Math.max(this.shakeMag, mag);
     this.shakeT = Math.max(this.shakeT, dur);
   }
 
   flash(color = '#fff', dur = 0.3) {
+    if (this.reduced) return;
     this.flashColor = color;
     this.flashT = dur;
     this.flashDur = dur;

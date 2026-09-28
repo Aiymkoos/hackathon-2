@@ -186,3 +186,44 @@ h1 {
     background: linear-gradient(to top, rgba(7, 12, 14, 0.95) 55%, rgba(7, 12, 14, 0));
   }
 }
+
+/* Illustrated scene, restrained light and an editorial title layout. */
+.scene-art { object-fit: cover; }
+.magic-overlay { pointer-events: none; }
+.intro { max-width: 610px; padding-right: 60px; }
+h1 { font-size: clamp(66px, 8vw, 116px); font-weight: 500; }
+.kicker { font-size: 10px; margin-bottom: 24px; letter-spacing: .22em; }
+.tagline { margin-top: 22px; color: #dac292; }
+.lead { max-width: 355px; margin-top: 20px; margin-bottom: 27px; color: #b5c3bc; }
+.gestures { gap: 14px; margin-bottom: 30px; }
+.gestures svg { width: 25px; height: 25px; stroke: #c9b484; }
+#startBtn { min-width: 270px; display:flex; justify-content:space-between; gap:30px; border-radius: 2px; padding:17px 25px; background:linear-gradient(110deg,rgba(173,144,84,.19),rgba(12,28,29,.4)); }
+#startBtn:hover { background:rgba(173,144,84,.27); }
+#startBtn:focus-visible { outline:2px solid var(--ivory); outline-offset:4px; }
+.start-hint { font-size:11px; color:#a8b8ad; line-height:1.6; margin:11px 0 0; }
+.note { color:#a1b1ab; line-height:1.6; max-width:350px; }
+.chapter { position:absolute; right:5vw; bottom:5vh; display:flex; align-items:center; gap:18px; font-size:10px; color:#94aaa2; letter-spacing:.07em; }
+.chapter span { color:var(--gold); letter-spacing:.18em; }
+.chapter i { width:55px; height:1px; background:#c9a86a66; }
+.embers { animation: rise 6s ease-in-out infinite alternate; }
+@keyframes rise { to { transform:translateY(-30px); opacity:.35; } }
+@media(max-width:700px) {
+ .intro { padding:26px 22px; max-width:none; background:linear-gradient(to top,#040d12 40%,#040d12d9 68%,#040d1233); }
+ h1 { font-size:72px; }
+ .kicker { margin-bottom:14px; font-size:9px; }
+ .tagline { margin-top:12px; }
+ .lead { margin:14px 0 18px; font-size:14px; }
+ .gestures { gap:8px; margin-bottom:20px; }
+ .chapter { display:none; }
+ .scene-art,.magic-overlay { object-position:center; }
+}
+@media(max-height:600px) and (min-width:701px) {
+ .intro { padding-top:22px; padding-bottom:22px; }
+ h1 { font-size:70px; }
+ .kicker { margin-bottom:12px; }
+ .tagline { margin-top:12px; }
+ .lead { margin:12px 0; }
+ .gestures { gap:5px; margin-bottom:14px; }
+ .chapter { display:none; }
+}
+@media(prefers-reduced-motion:reduce) { .embers { animation:none; } }

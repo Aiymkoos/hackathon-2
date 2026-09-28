@@ -3,7 +3,7 @@ import { C, drawGem, drawIcon } from '../theme.js';
 import { POSE } from '../gestures.js';
 import { RUNES, recognize } from '../runes.js';
 import { FRAMING_HINTS } from '../input.js';
-import { DwellButton, drawRune, label, roundRect } from '../ui.js';
+import { DwellButton, drawRune, label, paragraph, roundRect } from '../ui.js';
 import { drawManaOrb } from '../sprites.js';
 import { store } from '../store.js';
 
@@ -144,7 +144,7 @@ export class AcademyScene {
     const s = this.current;
     // карточка задания сверху
     const cw = Math.min(W - 32, minDim * 1.1);
-    const ch = minDim * 0.17;
+    const ch = Math.max(128, minDim * 0.17);
     const cx = (W - cw) / 2;
     const cy = 16;
     roundRect(ctx, cx, cy, cw, ch, 10);
@@ -155,7 +155,7 @@ export class AcademyScene {
     ctx.stroke();
     label(ctx, `Шаг ${this.step + 1} из ${STEPS.length}`, cx + cw / 2, cy + ch * 0.2, { size: ch * 0.12, weight: 700, color: C.gold, outline: false });
     label(ctx, s.title, cx + cw / 2, cy + ch * 0.46, { size: ch * 0.22, weight: 700, title: true, outline: false });
-    label(ctx, s.text, cx + cw / 2, cy + ch * 0.76, { size: Math.min(ch * 0.15, (cw / s.text.length) * 1.7), weight: 500, color: C.ivory, outline: false });
+    paragraph(ctx, s.text, cx + cw / 2, cy + ch * 0.67, cw - 32, { size: Math.max(14, Math.min(17, minDim * 0.022)) });
 
     // полоска прогресса по шагам
     const pw = cw / STEPS.length;

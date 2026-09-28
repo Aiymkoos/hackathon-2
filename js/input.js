@@ -1,8 +1,7 @@
 // Превращает кадры с рукой в игровые события:
 //  stroke    — закончен штрих пальцем (руна)
 //  pose      — поза руки сменилась (после стабилизации)
-//  push      — ладонь резко толкнули к камере
-//  weakPush  — толчок был, но слишком слабый
+//  trackingLost — незавершённый штрих отменён без штрафа
 
 import { POSE } from './gestures.js';
 import { OneEuro } from './filters.js';
@@ -48,7 +47,7 @@ export class Input {
       if (this.present) this.lostAt = now;
       this.present = false;
       this.landmarks = null;
-      // во время рисования камера может на миг потерять руку — линию не рвём
+      // Сохраняем след на миг для обратной связи; при возвращении начнём заново.
       const grace = this.stroke ? LOST_DRAW_MS : LOST_MS;
       if (now - this.lostAt > grace) {
         this.drawState = 'none';
@@ -95,7 +94,6 @@ export class Input {
 
   cancelStroke() {
     this.stroke = null;
-    this.arm = [];
     this.armAnchor = null;
     this.waitMove = null;
     this.armingProgress = 0;
@@ -141,8 +139,7 @@ export class Input {
     if (this.pose !== POSE.POINT) {
       if (this.stroke) this.finishStroke(events, minDim);
       this.waitMove = null;
-      this.arm = [];
-    this.armAnchor = null;
+      this.armAnchor = null;
       this.drawState = this.present ? 'idle' : 'none';
       return;
     }
@@ -153,8 +150,7 @@ export class Input {
         return;
       }
       this.waitMove = null;
-      this.arm = [];
-    this.armAnchor = null;
+      this.armAnchor = null;
     }
     const p = { x: this.tip.x, y: this.tip.y, t: now };
 
@@ -167,8 +163,7 @@ export class Input {
         return;
       }
       this.stroke = { pts: [], len: 0, startedAt: now };
-      this.arm = [];
-    this.armAnchor = null;
+      this.armAnchor = null;
     }
     this.drawState = 'drawing';
     this.armingProgress = 1;

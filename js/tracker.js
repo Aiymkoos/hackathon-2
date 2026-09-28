@@ -65,7 +65,9 @@ export async function createHandTracker({ fileset, model }) {
       lastVideoTime = video.currentTime; lastSubmit = now;
       if (direct) {
         const started = performance.now();
-        const value = direct.detectForVideo(video, now);
+        let value;
+        try { value = direct.detectForVideo(video, now); }
+        catch (error) { metrics.error = String(error); return { landmarks: [], sampleId: now }; }
         metrics.inferenceMs = performance.now() - started; metrics.samples++;
         return { ...value, sampleId: now };
       }

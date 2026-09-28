@@ -19,6 +19,7 @@ const video = document.getElementById('video');
 const startBtn = document.getElementById('startBtn');
 const statusEl = document.getElementById('status');
 const DEBUG = new URLSearchParams(location.search).has('debug');
+const DIAGNOSTICS = new URLSearchParams(location.search).has('diagnostics');
 
 const app = {
   W: 0, H: 0, minDim: 0, time: 0,
@@ -51,7 +52,8 @@ app.scenes = {
 // Видео растягивается «с обрезкой» на весь экран и отражается как зеркало.
 let view = { ox: 0, oy: 0, dw: 1, dh: 1 };
 function resize() {
-  const dpr = Math.min(2, devicePixelRatio || 1);
+  for (const h of Object.values(app.hands)) h.cancelStroke();
+  const dpr = Math.min(1.5, devicePixelRatio || 1);
   app.W = innerWidth;
   app.H = innerHeight;
   app.minDim = Math.min(app.W, app.H);
@@ -108,7 +110,7 @@ function drawCameraWindow(dt) {
   const want = !input.present || input.framing ? 1 : 0;
   pip.k += (want - pip.k) * Math.min(1, dt * 4);
   const vw = video.videoWidth || 16, vh = video.videoHeight || 9;
-  pip.w = Math.min(W * 0.2, 240) + (Math.min(W * 0.34, 420) - Math.min(W * 0.2, 240)) * pip.k;
+  pip.w = W < 700 ? 128 + 42 * pip.k : Math.min(W * 0.2, 220) + (Math.min(W * 0.32, 360) - Math.min(W * 0.2, 220)) * pip.k;
   pip.h = (pip.w * vh) / vw;
   pip.x = 16;
   pip.y = H - pip.h - 16;
@@ -246,9 +248,11 @@ function frame(now) {
     drawCursor(h);
   }
   app.scene.renderOverlay?.(ctx);
+  if (tracker?.metrics.error) app.toast.show('Распознавание остановилось. Обнови страницу и разреши камеру', 'error', 1);
   drawCameraWindow(dt);
-  app.toast.render(ctx, app.W, app.H, app.minDim, { bottom: app.H - 16, maxWidth: app.W - 2 * (app.pip.w + 40) });
+  app.toast.render(ctx, app.W, app.H, app.minDim, { bottom: app.W < 700 ? app.pip.y - 12 : app.H - 16, maxWidth: app.W < 700 ? app.W - 40 : Math.max(240, app.W - 2 * (app.pip.w + 40)) });
   fx.renderFlash(ctx, app.W, app.H);
+  if (DIAGNOSTICS && tracker) label(ctx, `${tracker.metrics.mode} · ${Math.round(tracker.metrics.inferenceMs)} ms · ${tracker.metrics.samples} кадров`, app.W / 2, app.H - 8, { size: 12, color: C.gold });
 
   if (!app.manual) nextFrame(frame);
 }

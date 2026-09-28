@@ -40,7 +40,15 @@ export class ResultsScene {
   render(ctx) {
     const { W, H, minDim } = this.app;
     const { win, score, stats } = this.data;
-    const s = minDim * 0.035;
+    if (H < 550) {
+      label(ctx, win ? 'Айдаһар повержен' : 'Печать пала', W / 2, H * .15, { size: 32, title: true, color: win ? C.teal : C.danger });
+      label(ctx, `${score} очков`, W / 2, H * .31, { size: 34, title: true, color: C.gold });
+      label(ctx, `Точность ${this.accuracy}% · серия ×${stats.maxCombo} · ${stats.blocks} блоков`, W / 2, H * .47, { size: 16 });
+      label(ctx, 'Следующее испытание сделает тебя сильнее', W / 2, H * .59, { size: 14, color: C.muted });
+      for (const b of this.buttons) b.render(ctx);
+      return;
+    }
+    const s = Math.max(18, minDim * 0.03);
 
     const pw = Math.min(W - 32, minDim * 1.05);
     const px = (W - pw) / 2;
@@ -66,23 +74,24 @@ export class ResultsScene {
       [`${stats.blocks}`, 'блоков щитом'],
       [`${this.time} с`, 'время'],
     ];
-    const cw = pw / col.length;
+    const columns = W < 600 ? 2 : 4;
+    const cw = pw / columns;
     col.forEach(([v, t], i) => {
-      label(ctx, v, px + cw * (i + 0.5), y, { size: s * 1.1, weight: 700, title: true, outline: false });
-      label(ctx, t, px + cw * (i + 0.5), y + s * 1.1, { size: s * 0.6, weight: 500, color: C.muted, outline: false });
+      label(ctx, v, px + cw * (i % columns + 0.5), y + Math.floor(i / columns) * s * 2.5, { size: s * 1.1, weight: 700, title: true, outline: false });
+      label(ctx, t, px + cw * (i % columns + 0.5), y + s * 1.1 + Math.floor(i / columns) * s * 2.5, { size: s * 0.6, weight: 500, color: C.muted, outline: false });
     });
-    y += s * 2.8;
+    y += s * (columns === 2 ? 5.3 : 2.8);
 
     if (this.topError) {
       label(ctx, `Частая ошибка: ${this.topError.label} (${this.topError.count})`, W / 2, y, { size: s * 0.75, color: C.danger, outline: false });
       label(ctx, `Совет: ${this.topError.advice}`, W / 2, y + s * 1.1, { size: s * 0.7, weight: 500, outline: false });
     } else {
-      label(ctx, 'Ни одной ошибки — ты настоящий Сиқыршы!', W / 2, y, { size: s * 0.8, color: C.teal, outline: false });
+      label(ctx, stats.attempts ? 'Все знаки верны — отличная работа!' : 'Начни с Академии: первый знак уже ждёт', W / 2, y, { size: s * 0.8, color: C.teal, outline: false });
     }
     y += s * 2.6;
 
     label(ctx, 'Летопись рекордов', W / 2, y, { size: s * 0.8, color: C.amber, outline: false });
-    this.records.forEach((r, i) => {
+    this.records.slice(0, 3).forEach((r, i) => {
       const mine = i + 1 === this.rank;
       label(ctx, `${i + 1}. ${r.score}${r.win ? ' · победа' : ''} · ${r.date}`, W / 2, y + s * 1.1 * (i + 1), { size: s * 0.65, weight: mine ? 800 : 500, color: mine ? C.amber : '#fff', outline: false });
     });

@@ -109,3 +109,26 @@ test('unprotected battle reaches defeat and result instead of getting stuck', ()
   for(let i=0;i<5000 && !a.destination;i++) b.update(.05,i*50,[]);
   assert.equal(a.destination?.name,'results');assert.equal(a.destination.data.win,false);
 });
+
+test('all game screens render with finite coordinates on desktop, phone and landscape', async () => {
+  const { MenuScene } = await import('../js/scenes/menu.js');
+  globalThis.Path2D = class {};
+  const gradient = { addColorStop() {} };
+  const ctx = new Proxy({ canvas:{width:1280,height:800}, measureText:s=>({width:String(s).length*8}),
+    createLinearGradient:()=>gradient,createRadialGradient:()=>gradient }, {
+    get(target,key){return key in target ? target[key] : (...args)=>{
+      for(const n of args) if(typeof n==='number')assert.ok(Number.isFinite(n),`${String(key)} has invalid coordinate`);
+    };},
+    set(target,key,value){target[key]=value;return true;},
+  });
+  for(const [W,H] of [[1280,800],[390,844],[844,390]]){
+    const a=app();Object.assign(a,{W,H,minDim:Math.min(W,H)});
+    const menu=new MenuScene(a);menu.enter();menu.update(.016,0,[]);menu.render(ctx);
+    const academy=new AcademyScene(a);academy.enter();
+    for(let step=0;step<7;step++){academy.step=step;academy.render(ctx);}
+    const battle=new BattleScene(a);battle.enter();battle.paused=true;battle.render(ctx);battle.renderOverlay(ctx);
+    battle.paused=false;battle.phase='fight';battle.spawnBoss();battle.render(ctx);battle.renderOverlay(ctx);
+    const results=new ResultsScene(a);results.enter({win:true,score:1500,stats:{attempts:4,hits:3,errors:{},maxCombo:2,blocks:1,activeSeconds:30}});
+    results.update(.016,0,[]);results.render(ctx);
+  }
+});

@@ -34,6 +34,14 @@ export function label(ctx, str, x, y, { size = 24, color = C.ivory, weight = 700
   ctx.fillText(str, x, y);
 }
 
+// Wrapped body copy: readable on narrow screens without shrinking to tiny text.
+export function paragraph(ctx, text, x, y, maxWidth, { size = 15, color = C.ivory, align = 'center' } = {}) {
+  font(ctx, size, 500);
+  const lines = wrap(ctx, text, maxWidth);
+  lines.forEach((line, i) => label(ctx, line, x, y + i * size * 1.4, { size, color, align, weight: 500, outline: false }));
+  return lines.length * size * 1.4;
+}
+
 /**
  * Рисует руну по образцу. progress (0..1) — рисовать только часть пути;
  * возвращает точку конца нарисованной части (для анимации «пишущего» огонька).
