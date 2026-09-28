@@ -67,7 +67,7 @@ function buildObs(res) {
   }
   rawHand = res.landmarks[0];
   const lm = res.landmarks[0].map(p => ({ x: view.ox + (1 - p.x) * view.dw, y: view.oy + p.y * view.dh }));
-  const hand = classifyHand(lm);
+  const hand = classifyHand(lm, res.worldLandmarks?.[0] ?? null);
   const palmIds = [0, 5, 9, 13, 17];
   const palm = {
     x: palmIds.reduce((s, i) => s + lm[i].x, 0) / palmIds.length,

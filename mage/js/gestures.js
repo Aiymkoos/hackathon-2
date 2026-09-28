@@ -12,10 +12,10 @@ export const POSE = {
 };
 
 const FINGERS = [
-  { name: 'указательный палец', pip: 6, tip: 8 },
-  { name: 'средний палец', pip: 10, tip: 12 },
-  { name: 'безымянный палец', pip: 14, tip: 16 },
-  { name: 'мизинец', pip: 18, tip: 20 },
+  { name: 'указательный палец', mcp: 5, pip: 6, dip: 7, tip: 8 },
+  { name: 'средний палец', mcp: 9, pip: 10, dip: 11, tip: 12 },
+  { name: 'безымянный палец', mcp: 13, pip: 14, dip: 15, tip: 16 },
+  { name: 'мизинец', mcp: 17, pip: 18, dip: 19, tip: 20 },
 ];
 
 const d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -25,8 +25,26 @@ function list(names) {
   return `${names.slice(0, -1).join(', ')} и ${names[names.length - 1]}`;
 }
 
-// Палец выпрямлен, если кончик заметно дальше от запястья, чем средний сустав.
-export function fingerStates(lm) {
+const sub3 = (a, b) => ({ x: a.x - b.x, y: a.y - b.y, z: (a.z ?? 0) - (b.z ?? 0) });
+function angle3(u, v) {
+  const dot = u.x * v.x + u.y * v.y + u.z * v.z;
+  const l = Math.hypot(u.x, u.y, u.z) * Math.hypot(v.x, v.y, v.z) || 1;
+  return (Math.acos(Math.max(-1, Math.min(1, dot / l))) * 180) / Math.PI;
+}
+
+/**
+ * Состояние каждого пальца. Если есть 3D-точки (world — в метрах), палец
+ * прямой по углу сгиба в суставах: так он распознаётся, даже когда смотрит
+ * прямо в камеру и на картинке выглядит коротким. Без 3D — запасной способ
+ * по расстояниям на экране.
+ */
+export function fingerStates(lm, world) {
+  if (world) {
+    return FINGERS.map(f => {
+      const bend = angle3(sub3(world[f.pip], world[f.mcp]), sub3(world[f.tip], world[f.pip]));
+      return bend < 40 ? 'ext' : bend > 75 ? 'curl' : 'half';
+    });
+  }
   const wrist = lm[0];
   return FINGERS.map(f => {
     const r = d(lm[f.tip], wrist) / d(lm[f.pip], wrist);
@@ -34,10 +52,10 @@ export function fingerStates(lm) {
   });
 }
 
-/** lm — 21 точка в пикселях экрана. Возвращает { pose, near, hint }. */
-export function classifyHand(lm) {
+/** lm — 21 точка в пикселях экрана, world — те же точки в 3D. Возвращает { pose, near, hint }. */
+export function classifyHand(lm, world = null) {
   const scale = d(lm[0], lm[9]) || 1;
-  const st = fingerStates(lm);
+  const st = fingerStates(lm, world);
   const [index, ...others] = st;
   const nExt = st.filter(s => s === 'ext').length;
   const nCurl = st.filter(s => s === 'curl').length;

@@ -9,6 +9,7 @@ import { OneEuro } from './filters.js';
 
 const STABLE_FRAMES = 3;   // столько кадров подряд поза должна держаться
 const LOST_MS = 250;       // рука пропала дольше — считаем, что её нет
+const LOST_DRAW_MS = 500;  // …а во время рисования ждём дольше
 const STILL_MS = 350;      // палец замер на столько — штрих закончен
 const ARM_MS = 220;        // замри на столько — начнём рисовать
 const PUSH_RATIO = 1.3;    // во сколько раз должна вырасти ладонь при толчке
@@ -45,9 +46,11 @@ export class Input {
     if (!obs || !obs.present) {
       if (this.present) this.lostAt = now;
       this.present = false;
-      this.drawState = 'none';
       this.landmarks = null;
-      if (now - this.lostAt > LOST_MS) {
+      // во время рисования камера может на миг потерять руку — линию не рвём
+      const grace = this.stroke ? LOST_DRAW_MS : LOST_MS;
+      if (now - this.lostAt > grace) {
+        this.drawState = 'none';
         if (this.stroke) this.finishStroke(events, minDim);
         this.setPose(POSE.NONE, now, events);
         this.poseHist.length = 0;
@@ -67,10 +70,13 @@ export class Input {
     this.tip = { x: this.fx.filter(obs.tip.x, t), y: this.fy.filter(obs.tip.y, t) };
     this.framing = this.checkFraming(obs, minDim);
 
-    this.poseHist.push(obs.pose);
+    // Пока рисуем, «неясный жест» (палец на миг согнулся, рука повернулась)
+    // не обрывает руну — остановить её может только чёткий другой жест.
+    const pose = this.stroke && obs.pose === POSE.OTHER ? POSE.POINT : obs.pose;
+    this.poseHist.push(pose);
     if (this.poseHist.length > STABLE_FRAMES) this.poseHist.shift();
-    if (this.poseHist.length === STABLE_FRAMES && this.poseHist.every(p => p === obs.pose)) {
-      this.setPose(obs.pose, now, events);
+    if (this.poseHist.length === STABLE_FRAMES && this.poseHist.every(p => p === pose)) {
+      this.setPose(pose, now, events);
     }
 
     this.updateStroke(now, minDim, events);
