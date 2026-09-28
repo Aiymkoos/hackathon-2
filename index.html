@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Маэстро — дирижируй оркестром</title>
+  <meta name="description" content="Дирижируй виртуальным оркестром движениями рук через веб-камеру">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <video id="video" playsinline muted></video>
+  <canvas id="stage"></canvas>
+
+  <div id="start" class="overlay">
+    <div class="card">
+      <h1>МАЭСТРО</h1>
+      <p class="sub">Дирижируй оркестром руками — музыка идёт в темпе твоих взмахов</p>
+      <ul class="howto">
+        <li><span>👋</span> Правая рука вниз-вверх — доли и темп</li>
+        <li><span>↕</span> Широкий взмах — громко, маленький — тихо</li>
+        <li><span>👉</span> Прямая левая рука на группу — вступление</li>
+        <li><span>🙌</span> Руки над головой, затем резко вниз — финал</li>
+      </ul>
+      <button id="startBtn">Включить камеру и звук</button>
+      <p class="note" id="status">Встань или сядь так, чтобы в кадре были плечи и руки. Видео обрабатывается прямо в браузере и никуда не отправляется.</p>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

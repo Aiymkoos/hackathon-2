@@ -1,0 +1,85 @@
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0b0620;
+  color: #f3e8ff;
+  font-family: Rubik, system-ui, sans-serif;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+}
+
+/* Видео нужно только как источник кадров — рисуем его на canvas. */
+#video {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: radial-gradient(circle at 50% 30%, #2a1670 0%, #0b0620 70%);
+}
+
+.overlay[hidden] { display: none; }
+
+.card {
+  width: min(560px, 100%);
+  padding: 32px 28px;
+  border-radius: 24px;
+  background: rgba(20, 10, 55, 0.85);
+  border: 1px solid rgba(139, 125, 255, 0.4);
+  box-shadow: 0 0 60px rgba(139, 125, 255, 0.25);
+  text-align: center;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(40px, 10vw, 64px);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 30px #ffd166;
+}
+
+.sub { margin: 8px 0 20px; color: #cfc4ff; font-size: 17px; }
+
+.howto {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  text-align: left;
+  display: grid;
+  gap: 10px;
+  font-size: 16px;
+}
+
+.howto span { display: inline-block; width: 32px; font-size: 20px; }
+
+#startBtn {
+  width: 100%;
+  padding: 16px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #8b7dff, #ffb020);
+  color: #fff;
+  font: 700 19px Rubik, sans-serif;
+  cursor: pointer;
+}
+
+#startBtn:disabled { opacity: 0.6; cursor: wait; }
+
+.note { margin: 14px 0 0; color: #a99fd6; font-size: 14px; }
