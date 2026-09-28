@@ -9,7 +9,7 @@ import { store } from '../store.js';
 
 const STEPS = [
   { kind: 'pose', pose: POSE.POINT, title: 'Волшебная палочка', text: 'Вытяни указательный палец, остальные согни' },
-  { kind: 'rune', rune: 'circle', title: 'Руна льда — Круг', text: 'Нарисуй пальцем круг и замкни его. Закончил — замри на секунду' },
+  { kind: 'rune', rune: 'circle', title: 'Руна льда — Круг', text: 'Вытяни палец и замри на миг — пойдёт линия. Нарисуй круг, закончил — снова замри' },
   { kind: 'rune', rune: 'triangle', title: 'Руна огня — Треугольник', text: 'Три резких угла и вернись в начало' },
   { kind: 'rune', rune: 'zigzag', title: 'Руна грозы — Молния', text: 'Сверху вниз: вправо, влево, вправо' },
   { kind: 'rune', rune: 'vee', title: 'Руна ветра — Галочка', text: 'Вниз и вверх: один острый угол внизу' },
@@ -95,7 +95,7 @@ export class AcademyScene {
       if (input.pose === POSE.OTHER && input.near === POSE.POINT && input.hint && input.poseTime(now) > 0.5) toast.show(input.hint, 'error', 0.6);
       for (const e of events) {
         if (e.type !== 'stroke') continue;
-        const res = recognize(e.pts, { minSize: minDim * 0.14, expected: [s.rune] });
+        const res = recognize(e.pts, { minSize: this.app.input.runeMinSize(minDim), expected: [s.rune] });
         if (res.ok) {
           this.app.feedback.success(e.pts, RUNES[s.rune].color);
           this.app.feedback.items = this.app.feedback.items.filter(i => i.kind !== 'fail');
