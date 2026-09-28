@@ -10,7 +10,7 @@ import { OneEuro } from './filters.js';
 const STABLE_FRAMES = 3;   // столько кадров подряд поза должна держаться
 const LOST_MS = 250;       // рука пропала дольше — считаем, что её нет
 const LOST_DRAW_MS = 500;  // …а во время рисования ждём дольше
-const STILL_MS = 350;      // палец замер на столько — штрих закончен
+const STILL_MS = 600;      // палец замер на столько — штрих закончен (на углах рука замедляется, поэтому с запасом)
 const ARM_MS = 220;        // замри на столько — начнём рисовать
 const PUSH_RATIO = 1.3;    // во сколько раз должна вырасти ладонь при толчке
 const WEAK_RATIO = 1.12;
@@ -154,6 +154,13 @@ export class Input {
     const pts = this.stroke.pts;
     if (pts.length) this.stroke.len += dist(pts[pts.length - 1], p);
     pts.push(p);
+
+    // Руна засчитывается сразу, как только нарисована, — не дожидаясь остановки.
+    if (this.earlyCheck && pts.length % 3 === 0 && this.stroke.len > unit * 8 && this.earlyCheck(pts)) {
+      this.finishStroke(events, minDim);
+      this.waitMove = { x: p.x, y: p.y };
+      return;
+    }
 
     // Палец замер после рисования — штрих закончен.
     if (this.stroke.len > unit * 8 && now - pts[0].t > STILL_MS) {

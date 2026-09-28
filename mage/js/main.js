@@ -22,7 +22,9 @@ const DEBUG = new URLSearchParams(location.search).has('debug');
 
 const app = {
   W: 0, H: 0, minDim: 0, time: 0,
-  input: new Input(),
+  // у каждой руки своё состояние; input — «главная» рука сейчас
+  hands: { Right: new Input(), Left: new Input() },
+  input: null,
   fx: new Effects(),
   sfx: new Sfx(),
   toast: new Toaster(),
@@ -36,6 +38,7 @@ const app = {
     this.scene.enter?.(data);
   },
 };
+app.input = app.hands.Right;
 app.scenes = {
   menu: new MenuScene(app),
   academy: new AcademyScene(app),
@@ -60,14 +63,9 @@ function resize() {
 }
 addEventListener('resize', resize);
 
-function buildObs(res) {
-  if (!res.landmarks?.length) {
-    rawHand = null;
-    return { present: false };
-  }
-  rawHand = res.landmarks[0];
-  const lm = res.landmarks[0].map(p => ({ x: view.ox + (1 - p.x) * view.dw, y: view.oy + p.y * view.dh }));
-  const hand = classifyHand(lm, res.worldLandmarks?.[0] ?? null);
+function handObs(norm, world) {
+  const lm = norm.map(p => ({ x: view.ox + (1 - p.x) * view.dw, y: view.oy + p.y * view.dh }));
+  const hand = classifyHand(lm, world);
   const palmIds = [0, 5, 9, 13, 17];
   const palm = {
     x: palmIds.reduce((s, i) => s + lm[i].x, 0) / palmIds.length,
@@ -77,7 +75,29 @@ function buildObs(res) {
   return { present: true, landmarks: lm, ...hand, tip: lm[8], palm, scale };
 }
 
-let rawHand = null; // точки руки в координатах кадра камеры (0..1)
+// Результат MediaPipe → наблюдение для каждой руки (Right / Left).
+function buildObs(res) {
+  const out = { Right: { present: false }, Left: { present: false } };
+  rawHands = {};
+  (res.landmarks ?? []).forEach((norm, i) => {
+    let key = res.handedness?.[i]?.[0]?.categoryName === 'Left' ? 'Left' : 'Right';
+    if (out[key].present) key = key === 'Right' ? 'Left' : 'Right'; // обе «правые» — разводим
+    out[key] = handObs(norm, res.worldLandmarks?.[i] ?? null);
+    rawHands[key] = norm;
+  });
+  return out;
+}
+
+let rawHands = {}; // точки рук в координатах кадра камеры (0..1)
+
+// «Главная» рука: та, что рисует или держит жест; иначе любая видимая.
+function pickPrimary() {
+  const list = Object.values(app.hands);
+  return list.find(h => h.stroke)
+    ?? list.find(h => h.present && [POSE.FIST, POSE.PALM, POSE.THUMB].includes(h.pose))
+    ?? list.find(h => h.present)
+    ?? app.hands.Right;
+}
 
 // Окно камеры в углу: видно, попадает ли рука в кадр. Если руки нет
 // или она у края — окно увеличивается.
@@ -104,7 +124,7 @@ function drawCameraWindow(dt) {
     ctx.drawImage(video, 0, 0, w, h);
     ctx.restore();
   } else label(ctx, 'камера (отладка)', x + w / 2, y + h / 2, { size: 12, color: C.muted, outline: false });
-  if (rawHand) drawHand(ctx, rawHand.map(p => ({ x: x + (1 - p.x) * w, y: y + p.y * h })), POSE_COLORS[input.pose]);
+  for (const [key, norm] of Object.entries(rawHands)) drawHand(ctx, norm.map(p => ({ x: x + (1 - p.x) * w, y: y + p.y * h })), POSE_COLORS[app.hands[key].pose]);
   ctx.restore();
   ctx.save();
   ctx.strokeStyle = input.present ? C.line : C.danger;
@@ -113,15 +133,15 @@ function drawCameraWindow(dt) {
   ctx.stroke();
   ctx.restore();
   const known = input.present && input.pose !== POSE.OTHER;
-  const DRAW = { arming: 'замри на миг — и рисуй', drawing: 'рисую… замри, когда закончишь', checking: 'проверяю · сдвинь палец для новой руны' };
+  const DRAW = { arming: 'замри на миг — и рисуй', drawing: 'рисую — руна сработает сама', checking: 'проверяю · сдвинь палец для новой руны' };
   const text = input.pose === POSE.POINT && DRAW[input.drawState] ? DRAW[input.drawState] : POSE_NAMES[input.pose];
   label(ctx, input.present ? text : 'подними руку', x + 10, y + 13, { size: 12, weight: 700, color: known ? C.teal : input.present ? C.amber : C.danger, align: 'left' });
 }
 
 // Курсор руки на сцене: кольцо цвета позы и значок жеста рядом.
 const POSE_ICON = { [POSE.PALM]: 'palm', [POSE.FIST]: 'fist', [POSE.THUMB]: 'thumb' };
-function drawCursor() {
-  const { input, time } = app;
+function drawCursor(input) {
+  const { time } = app;
   if (!input.present) return;
   const color = POSE_COLORS[input.pose];
   const p = input.pose === POSE.PALM || input.pose === POSE.FIST ? input.palm : input.tip;
@@ -152,7 +172,7 @@ const nextFrame = cb => (DEBUG && document.hidden ? setTimeout(() => cb(performa
 
 let tracker = null;
 let debugHand = null;
-let lastObs = { present: false };
+let lastObs = { Right: { present: false }, Left: { present: false } };
 let last = performance.now();
 
 function frame(now) {
@@ -160,14 +180,21 @@ function frame(now) {
   last = now;
   app.time += dt;
 
-  if (debugHand) lastObs = debugHand.obs(now);
+  if (debugHand) lastObs = { Right: debugHand.obs(now), Left: { present: false } };
   else if (tracker) {
     const res = tracker.detect(video, now);
     if (res) lastObs = buildObs(res);
   }
-  const events = app.input.update(lastObs, now, app.minDim);
+  // Сцена может сразу засчитать руну, как только она нарисована (earlyCheck).
+  const early = app.scene.earlyCheck?.bind(app.scene) ?? null;
+  const events = [];
+  for (const [key, inp] of Object.entries(app.hands)) {
+    inp.earlyCheck = early;
+    for (const e of inp.update(lastObs[key], now, app.minDim)) events.push({ ...e, hand: key });
+  }
+  app.input = pickPrimary();
   const { input, fx } = app;
-  if (input.present && input.pose === POSE.POINT) fx.sparkle(input.tip.x, input.tip.y, C.teal);
+  for (const h of Object.values(app.hands)) if (h.present && h.pose === POSE.POINT) fx.sparkle(h.tip.x, h.tip.y, C.teal);
 
   app.scene.update(dt, now, events);
   fx.update(dt);
@@ -184,8 +211,10 @@ function frame(now) {
   fx.render(ctx);
   ctx.restore();
 
-  if (input.stroke) drawTrail(ctx, input.stroke.pts);
-  drawCursor();
+  for (const h of Object.values(app.hands)) {
+    if (h.stroke) drawTrail(ctx, h.stroke.pts);
+    drawCursor(h);
+  }
   app.scene.renderOverlay?.(ctx);
   drawCameraWindow(dt);
   app.toast.render(ctx, app.W, app.H, app.minDim, { bottom: app.H - 16, maxWidth: app.W - 2 * (app.pip.w + 40) });

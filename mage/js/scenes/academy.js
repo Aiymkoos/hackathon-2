@@ -9,8 +9,8 @@ import { store } from '../store.js';
 
 const STEPS = [
   { kind: 'pose', pose: POSE.POINT, title: 'Волшебная палочка', text: 'Вытяни указательный палец, остальные согни' },
-  { kind: 'rune', rune: 'circle', title: 'Руна льда — Круг', text: 'Вытяни палец и замри на миг — пойдёт линия. Нарисуй круг, закончил — снова замри' },
-  { kind: 'rune', rune: 'triangle', title: 'Руна огня — Треугольник', text: 'Три резких угла и вернись в начало' },
+  { kind: 'rune', rune: 'circle', title: 'Руна льда — Круг', text: 'Вытяни палец и замри на миг — пойдёт линия. Нарисуй круг — руна сработает сама' },
+  { kind: 'rune', rune: 'triangle', title: 'Руна огня — Треугольник', text: 'Три стороны и вернись в начало — углы можно чуть скруглить' },
   { kind: 'rune', rune: 'zigzag', title: 'Руна грозы — Молния', text: 'Сверху вниз: вправо, влево, вправо' },
   { kind: 'rune', rune: 'vee', title: 'Руна ветра — Галочка', text: 'Вниз и вверх: один острый угол внизу' },
   { kind: 'pose', pose: POSE.FIST, title: 'Щит', text: 'Сожми кулак — так ты закроешься от огня босса' },
@@ -36,6 +36,13 @@ export class AcademyScene {
     this.finished = false;
     this.app.toast.clear();
     this.app.feedback.clear();
+  }
+
+  // Руна засчитывается сразу, как только нарисована правильно.
+  earlyCheck(pts) {
+    const s = this.current;
+    if (this.finished || this.successT > 0 || s?.kind !== 'rune') return false;
+    return recognize(pts, { minSize: this.app.input.runeMinSize(this.app.minDim), expected: [s.rune] }).ok;
   }
 
   get current() {

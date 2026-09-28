@@ -7,7 +7,8 @@ const N = 48;                            // точек после ресемпл
 const K = 3;                             // шаг для оценки угла поворота
 const CORNER_RAD = (55 * Math.PI) / 180; // поворот больше — это угол
 const STRONG_RAD = (75 * Math.PI) / 180; // «настоящий» острый угол
-const CLOSED_GAP = 0.35;                 // разрыв (доля размера), при котором фигура ещё замкнута
+const CLOSED_GAP = 0.4;                  // разрыв (доля размера), при котором фигура ещё замкнута
+const ROUND = 0.8;                       // круглее — круг, угловатее — треугольник
 
 function circlePath(n = 32) {
   const pts = [];
@@ -128,8 +129,19 @@ export function analyzeStroke(raw) {
   let totalTurn = 0;
   for (let i = 1; i < N - 1; i++) totalTurn += turn(sub(pts[i], pts[i - 1]), sub(pts[i + 1], pts[i]));
 
+  // «Круглость» 4πS/P²: круг ≈ 1, треугольник ≈ 0.6 даже со скруглёнными углами.
+  let area = 0;
+  for (let i = 0; i < N; i++) {
+    const a = pts[i], b = pts[(i + 1) % N];
+    area += a.x * b.y - b.x * a.y;
+  }
+  area = Math.abs(area) / 2;
+  const perimeter = pathLength(pts) + dist(start, end);
+  const roundness = perimeter > 0 ? (4 * Math.PI * area) / (perimeter * perimeter) : 0;
+
   const c = corners[0];
   return {
+    roundness,
     pts, size, w, h, gap,
     bbox: { x: minX, y: minY, w, h, cx: minX + w / 2, cy: minY + h / 2 },
     start, end,
@@ -148,8 +160,8 @@ export function analyzeStroke(raw) {
 export function classify(f) {
   const nc = f.corners.length;
   if (f.closed) {
-    if (f.strong >= 2 && nc <= 4) return 'triangle';
-    if (f.strong <= 1 && f.aspect > 0.5) return 'circle';
+    if (f.roundness >= ROUND && f.aspect > 0.5) return 'circle';
+    if (f.roundness < ROUND && f.roundness > 0.35 && f.aspect > 0.5) return 'triangle';
     return null;
   }
   if (nc === 1 && f.cornerLow && f.spread > 0.3) return 'vee';
@@ -162,8 +174,8 @@ function similarity(f, id) {
   const nc = f.corners.length;
   const loop = Math.abs(f.totalTurn) / (2 * Math.PI); // ≈1 для замкнутой фигуры
   switch (id) {
-    case 'circle':   return 2 - Math.abs(loop - 1) * 2 - Math.max(0, f.strong - 1) * 0.7 + (f.closed ? 0.5 : 0);
-    case 'triangle': return 2 - Math.abs(loop - 1) * 2 - Math.abs(nc - 2.5) * 0.4 + (f.strong >= 2 ? 0.6 : 0) + (f.closed ? 0.3 : 0);
+    case 'circle':   return 2 - Math.abs(loop - 1) * 2 + (f.roundness - ROUND) * 3 + (f.closed ? 0.5 : 0);
+    case 'triangle': return 2 - Math.abs(loop - 1) * 2 + (ROUND - f.roundness) * 3 + (nc >= 2 ? 0.4 : 0) + (f.closed ? 0.3 : 0);
     case 'zigzag':   return 2 - Math.abs(nc - 2) * 0.6 + (f.alternating && nc > 1 ? 1 : 0) - (f.closed ? 1 : 0) - loop * 0.5;
     case 'vee':      return 2 - Math.abs(nc - 1) * 0.8 + (f.cornerLow ? 0.6 : 0) - (f.closed ? 1 : 0) - loop * 0.5;
     default:         return -Infinity;
@@ -180,13 +192,12 @@ export function diagnose(f, id) {
   switch (id) {
     case 'circle':
       if (!f.closed) return err('open', 'Круг не замкнут — доведи палец до точки, где начал', [gapMark(f)]);
-      if (f.strong >= 2) return err('angular', 'Слишком угловато — веди палец по плавной дуге, без резких поворотов', cornerMarks(f));
       if (f.aspect <= 0.5) return err('squashed', 'Круг сплющен — рисуй одинаково в ширину и в высоту');
+      if (f.roundness < ROUND) return err('angular', 'Слишком угловато — веди палец по плавной дуге, без резких поворотов', cornerMarks(f));
       break;
     case 'triangle':
-      if (f.strong < 2) return err('noCorners', 'Не видно углов — на каждом углу делай резкий поворот, а не дугу');
       if (!f.closed) return err('open', 'Треугольник не замкнут — верни палец к первому углу', [gapMark(f)]);
-      if (nc > 4) return err('tooManyCorners', `Слишком много углов (${nc}) — нужно ровно 3`, cornerMarks(f));
+      if (f.roundness >= ROUND) return err('noCorners', 'Получился круг — веди стороны прямее, на углах поворачивай');
       break;
     case 'zigzag':
       if (f.closed) return err('closedZigzag', 'Молния не замыкается — веди сверху вниз: ↘ ↙ ↘', [gapMark(f)]);
