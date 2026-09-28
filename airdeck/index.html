@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AirDeck — презентация в твоих руках</title>
+<style>
+:root{--bg:#0c121a;--panel:#151e2a;--line:#ffffff15;--muted:#93a3b5;--ink:#162a37;--paper:#f3f1e9;--orange:#fb9a60;--mint:#90d1b5}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#f5f3ee;font-family:Inter,Arial,sans-serif}button{font:inherit;cursor:pointer}button:disabled{opacity:.5;cursor:wait}button:focus-visible{outline:3px solid var(--orange);outline-offset:4px}header{height:88px;display:flex;align-items:center;justify-content:space-between;padding:0 4vw;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:12px;font-weight:700;font-size:22px;letter-spacing:-1px}.brand b{display:grid;place-items:center;background:var(--orange);color:#16202c;width:36px;height:36px;border-radius:10px;font-size:24px}.brand small{color:var(--muted);font-weight:400;font-size:12px;letter-spacing:0;margin-left:16px}.top-actions{display:flex;gap:12px;align-items:center}.pill{font-size:11px;color:var(--mint);padding:8px 12px;background:#90d1b511;border:1px solid #90d1b530;border-radius:30px}.quiet{border:1px solid #ffffff25;background:none;color:#dce3e9;border-radius:8px;padding:10px 14px;font-size:12px}.primary{border:0;background:var(--orange);color:#18212a;border-radius:8px;padding:14px 20px;font-weight:700}main{max-width:1600px;margin:auto;padding:30px 4vw}.eyebrow{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}.workspace-title{display:flex;justify-content:space-between;align-items:end;margin-bottom:19px}.workspace-title h1{font-size:22px;letter-spacing:-.7px;margin:7px 0 0;font-weight:500}.workspace-title p{color:var(--muted);font-size:12px;margin:0}.workspace{display:grid;grid-template-columns:minmax(0,1fr) 265px;gap:22px}.stage{position:relative;min-height:440px;aspect-ratio:16/10;overflow:hidden;background:var(--paper);border-radius:12px;color:var(--ink);isolation:isolate}.slide{height:100%;padding:5.5%;display:none;flex-direction:column;position:relative;overflow:hidden}.slide.active{display:flex;animation:appear .3s ease-out}.slide::after{content:attr(data-foot);position:absolute;bottom:5%;left:5.5%;font-size:10px;letter-spacing:1.4px;color:#60717a}.slide small{font-size:10px;letter-spacing:2px;font-weight:700;text-transform:uppercase;color:#6e7b7e}.slide h2{font-family:Georgia,serif;font-weight:400;font-size:clamp(34px,4.7vw,72px);line-height:1.04;letter-spacing:-2px;margin:6% 0 4%;max-width:75%;position:relative;z-index:2}.slide p{font-size:clamp(14px,1.35vw,20px);line-height:1.55;max-width:65%;color:#5f727a;position:relative;z-index:2}.slide .accent{color:#b85d32}.orbit{position:absolute;width:48%;aspect-ratio:1;right:-10%;top:18%;border:1px solid #142e3330;border-radius:50%;box-shadow:0 0 0 40px #152f3310,0 0 0 80px #152f3308}.orb{position:absolute;width:34%;aspect-ratio:1;right:-3%;top:31%;border-radius:50%;background:radial-gradient(circle at 30% 25%,#fbbd89,#da8056 55%,#984c35);box-shadow:inset -15px -20px 60px #45281c22}.slide-label{position:absolute;right:6%;bottom:7%;font-size:10px;letter-spacing:2px}.slide.dark{background:#203b40;color:#f2f2e8}.slide.dark small{color:#a7c2b8}.slide.dark p{color:#bbcec7}.slide.dark::after{color:#a6bcb4}.slide h3{font-size:clamp(22px,2.5vw,38px);font-weight:400;letter-spacing:-1px;margin:7% 0 6%}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;flex:1;max-height:240px}.card{border:1px solid #ffffff25;border-radius:12px;padding:18px;background:#ffffff06;position:relative;transition:border-color .15s,background .15s}.card .number{font-family:Georgia,serif;font-size:44px;color:#d9b38d;margin-bottom:28px}.card strong{font-size:16px;font-weight:500}.card p{font-size:12px;max-width:none;margin-bottom:0;line-height:1.5}.focusable{outline-offset:5px;cursor:zoom-in}.focusable.targeted{outline:2px solid var(--orange);background:#fb9a600c}.big-stat{font-family:Georgia,serif;font-size:clamp(70px,13vw,180px);letter-spacing:-8px;line-height:1}.stat-layout{display:grid;grid-template-columns:1fr 1fr;align-items:center;flex:1;gap:30px}.stat-layout p{max-width:none;font-size:17px}.mini-bars{height:95px;display:flex;align-items:end;gap:15px;margin-top:20px}.mini-bars i{background:#bcd4c3;flex:1;border-radius:4px 4px 0 0}.mini-bars i:last-child{background:#df8659}.deck-nav{display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:12px}.nav-buttons{display:flex;gap:8px}.dots{display:flex;gap:7px}.dots i{height:5px;width:24px;background:#ffffff1c;border-radius:5px}.dots i.on{background:var(--orange)}.counter{font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted)}aside{display:flex;flex-direction:column;gap:14px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}.panel h3{font-size:13px;font-weight:500;margin:0 0 17px}.camera{position:relative;aspect-ratio:4/3;overflow:hidden;background:#0c121b;border-radius:8px}.camera video,.camera canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.camera video{transform:scaleX(-1)}.camera canvas{z-index:2}.camera .empty{position:absolute;inset:0;display:grid;place-content:center;text-align:center;font-size:11px;line-height:1.7;color:var(--muted);padding:20px}.camera .empty b{display:block;font-size:28px;color:#b9c8cf;margin-bottom:10px}.camera-state{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:11px;margin:13px 0 0}.light{width:6px;height:6px;border-radius:50%;background:#64717f}.light.on{background:var(--mint);box-shadow:0 0 10px #90d1b560}.guide{display:grid;gap:14px}.guide-row{display:flex;gap:12px;align-items:center}.symbol{width:34px;height:34px;display:grid;place-items:center;background:#ffffff08;border:1px solid #ffffff12;border-radius:8px;font-size:19px;color:#d6b99a}.guide-row b{display:block;font-size:12px;font-weight:500;margin-bottom:4px}.guide-row span{font-size:10px;color:var(--muted)}.guide-row.done .symbol{color:var(--mint);border-color:#90d1b550}.hint-box{min-height:85px;border-left:2px solid var(--orange);padding:12px 13px;background:#fb9a6008;border-radius:0 8px 8px 0;font-size:12px;line-height:1.5;color:#e7d6c8}.hint-box.error{border-color:#ef8178;background:#ef81780a}.hint-box label{display:block;letter-spacing:1px;font-size:9px;margin-bottom:6px;color:var(--orange)}.meter{height:3px;background:#ffffff12;border-radius:4px;overflow:hidden;margin-top:12px}.meter i{display:block;height:100%;background:var(--mint);width:0;transition:width .08s}.footer-note{font-size:10px;color:#738798;line-height:1.7;margin:16px 0}.cursor{position:fixed;width:22px;height:22px;border:2px solid #ea8d58;border-radius:50%;pointer-events:none;z-index:50;display:none;box-shadow:0 0 0 6px #ea8d5822;transform:translate(-50%,-50%)}.cursor::after{content:'';position:absolute;width:4px;height:4px;background:#cc613c;border-radius:50%;left:7px;top:7px}.curtain{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:30px;background:#0c121aed;backdrop-filter:blur(8px);color:#f1f1e8}.curtain.hidden{display:none}.welcome{max-width:470px;text-align:center}.welcome .eyebrow{color:var(--orange)}.welcome h2{font-family:Georgia,serif;font-weight:400;font-size:clamp(34px,4vw,58px);line-height:1.05;letter-spacing:-1.5px;margin:22px 0}.welcome p{font-size:13px;color:#9eafbc;line-height:1.8;margin:0 0 23px}.welcome-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.welcome .tiny{font-size:10px;margin:18px 0 0;color:#8798a5}.zoom-layer{position:absolute;inset:0;z-index:4;display:none;align-items:center;justify-content:center;background:#173138ed;padding:12%;color:#f5f3e9}.zoom-layer.open{display:flex}.zoom-copy{width:100%;font-size:24px;border:1px solid #ffffff30;border-radius:18px;padding:35px;background:#ffffff08}.zoom-copy .number{font:72px Georgia;color:var(--orange);margin-bottom:15px}.zoom-copy p{font-size:21px;line-height:1.5}.zoom-copy strong{font-size:30px}.zoom-caption{position:absolute;bottom:25px;left:0;right:0;text-align:center;font-size:11px;color:#c0d1c9}.result-stats{display:flex;justify-content:center;gap:30px;margin:22px 0}.result-stats b{display:block;font:36px Georgia;color:var(--orange)}.result-stats small{font-size:10px;color:#b8c5ce}.step-tag{background:#ffffff09;border-radius:5px;padding:6px 9px;font-size:10px;color:var(--muted)}.demo-bar{display:none;margin-top:12px;font-size:11px;color:#c7b492;line-height:1.5}.demo-bar.show{display:block}.dwell{box-shadow:inset 0 -3px 0 var(--mint)}@keyframes appear{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}@media(max-width:1000px){.workspace{grid-template-columns:minmax(0,1fr) 225px;gap:14px}.stage{aspect-ratio:4/3}.brand small{display:none}.slide h2{font-size:46px}.card{padding:12px}.card .number{font-size:34px;margin-bottom:16px}.card strong{font-size:13px}.card p{font-size:11px}}@media(max-width:760px){header{height:68px;padding:0 18px}.pill{display:none}main{padding:20px 18px}.workspace{display:flex;flex-direction:column}.stage{aspect-ratio:4/3;min-height:350px}.slide h2{font-size:42px}.slide p{font-size:14px}.workspace-title p{display:none}aside{display:grid;grid-template-columns:1fr 1fr}.hint-box{grid-column:1/-1}.panel{padding:12px}.camera{max-height:180px}.guide{gap:10px}.slide h3{font-size:26px}.stat-layout{gap:12px}.stat-layout p{font-size:13px}.big-stat{font-size:95px}.cards{gap:7px}.card{padding:10px}.card p{font-size:10px}.card .number{font-size:32px;margin-bottom:12px}.slide::after{font-size:8px}.welcome h2{font-size:38px}.welcome p{font-size:12px}.deck-nav{flex-wrap:wrap}.zoom-copy{padding:20px}.zoom-copy p{font-size:17px}.zoom-copy strong{font-size:24px}.brand{font-size:20px}.quiet{padding:9px 10px}}@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header><div class="brand"><b>↗</b>AirDeck<small>Презентация в твоих руках</small></div><div class="top-actions"><span id="modeBadge" class="pill">Без установки</span><button class="quiet" id="cameraToggle">Включить камеру</button></div></header>
+<main><div class="workspace-title"><div><span class="eyebrow">Твоё пространство для выступления</span><h1>Покажи главное. Остальное — жестом.</h1></div><p id="clock">00:00</p></div>
+<div class="workspace"><section><div class="stage" id="stage">
+<article class="slide active" data-foot="AIRDECK / СВОБОДА ВЫСТУПЛЕНИЯ"><small>01 — Начни с идеи</small><h2>Внимание —<br>на <span class="accent">твоих словах.</span></h2><p>Управляй выступлением одной рукой.<br>Пульт больше не отвлекает от главного.</p><div class="orbit"></div><div class="orb"></div><div class="slide-label">ДВИЖЕНИЕ → ДЕЙСТВИЕ</div></article>
+<article class="slide dark" data-foot="AIRDECK / ТРИ ПРОСТЫХ ДЕЙСТВИЯ"><small>02 — Говори свободно</small><h3>Весь контроль — в трёх жестах.</h3><div class="cards"><div class="card focusable" tabindex="0"><div class="number">01</div><strong>Листай</strong><p>Открытая ладонь вправо или влево — следующий или предыдущий слайд.</p></div><div class="card focusable" tabindex="0"><div class="number">02</div><strong>Выделяй</strong><p>Указательный палец направляет внимание туда, где сейчас важнее всего.</p></div><div class="card focusable" tabindex="0"><div class="number">03</div><strong>Приближай</strong><p>Щипок увеличивает фрагмент. Кулак возвращает общий вид.</p></div></div></article>
+<article class="slide" data-foot="AIRDECK / ЯСНОСТЬ ВМЕСТО СУЕТЫ"><small>03 — Покажи деталь</small><div class="stat-layout"><div class="focusable" tabindex="0"><div class="big-stat">1</div><p><strong>идея за раз</strong><br>Чёткий фокус помогает следить за твоей мыслью.</p></div><div class="focusable" tabindex="0"><p><strong>От общего — к главному</strong><br>Наведи палец на этот блок и соедини большой с указательным.</p><div class="mini-bars" aria-label="Декоративная иллюстрация, не данные"><i style="height:30%"></i><i style="height:48%"></i><i style="height:65%"></i><i style="height:95%"></i></div></div></div></article>
+<article class="slide dark" data-foot="AIRDECK / ТВОЙ СЛЕДУЮЩИЙ ШАГ"><small>04 — Заверши уверенно</small><h2>Ты говоришь.<br>Слайды <span style="color:#e3b38b">следуют.</span></h2><p>Ещё один взмах вправо — и выступление завершено. Можно посмотреть итог или начать снова.</p><div class="orbit"></div></article>
+<div class="zoom-layer" id="zoom"><div id="zoomCopy" class="zoom-copy"></div><span class="zoom-caption">Сожми кулак, чтобы вернуться · в деморежиме нажми F</span></div>
+<div class="curtain" id="curtain"><div class="welcome" id="welcome"><span class="eyebrow">Жесты вместо пульта</span><h2>Свобода<br>каждого движения.</h2><p>Разреши камеру, покажи открытую ладонь<br>и проведи короткую презентацию без касаний.</p><div class="welcome-actions"><button class="primary" id="start">Начать с камерой</button><button class="quiet" id="demo">Посмотреть демо</button></div><p class="tiny" id="loadStatus">Видео обрабатывается на устройстве. Для модели нужен интернет.</p></div></div>
+</div><div class="deck-nav"><div class="nav-buttons"><button class="quiet gesture-button" id="prev">← Назад</button><button class="quiet gesture-button" id="next">Дальше →</button></div><div class="dots" id="dots"><i class="on"></i><i></i><i></i><i></i></div><span class="counter" id="count">01 / 04</span><button class="quiet gesture-button" id="finish">Завершить</button></div><p class="demo-bar" id="demoHelp">ДЕМО БЕЗ КАМЕРЫ: ← → листать · мышь — указатель · клик по блоку — увеличить · F — общий вид. Это проверка интерфейса, не распознавания.</p><p class="footer-note">После разрешения камеры управление доступно жестами. Убери руку на секунду — управление заблокируется. Чтобы вернуться, удержи открытую ладонь.</p></section>
+<aside><div class="panel"><h3>Твоя рука — твой пульт</h3><div class="camera"><video id="video" autoplay playsinline muted></video><canvas id="handCanvas"></canvas><div class="empty" id="cameraEmpty"><div><b>⌁</b>Камера выключена<br>Ты контролируешь её доступ</div></div></div><div class="camera-state"><i id="statusLight" class="light"></i><span id="cameraState">Ожидаю подключения</span></div><div class="meter"><i id="progress"></i></div></div><div class="panel"><h3>Сначала попробуй</h3><div class="guide"><div class="guide-row" id="guide-arm"><div class="symbol">✋</div><div><b>Включи управление</b><span>Ладонь · удержать 0,6 с</span></div></div><div class="guide-row" id="guide-swipe"><div class="symbol">↔</div><div><b>Перелистни слайд</b><span>Открытая ладонь в сторону</span></div></div><div class="guide-row" id="guide-zoom"><div class="symbol">⌕</div><div><b>Приблизь деталь</b><span>Палец на блок → щипок</span></div></div><div class="guide-row" id="guide-reset"><div class="symbol">□</div><div><b>Верни общий вид</b><span>Кулак · удержать 0,25 с</span></div></div></div></div><div class="hint-box" id="hintBox" role="status" aria-live="polite"><label id="hintLabel">СЛЕДУЮЩИЙ ШАГ</label><span id="hint">Включи камеру или открой деморежим.</span></div></aside></div></main>
+<div id="cursor" class="cursor"></div>
+<script type="module">
+// Camera-independent gesture state machine. Coordinates are mirrored and normalized.
+class GestureEngine {
+  constructor(){this.reset();}
+  reset(){this.armed=false;this.lastSample=-Infinity;this.palmAt=null;this.swipe=null;this.pinched=false;this.pinchAt=null;this.fistAt=null;this.fistFired=false;this.cooldown=0;this.lastSeen=null;this.pointer=null;}
+  update(o, now){
+    const out={actions:[],armed:this.armed,progress:0,pose:o?.pose??'NONE',pointer:this.pointer};
+    if(!o?.present){
+      if(this.lastSeen===null || now-this.lastSeen>600){this.armed=false;this.palmAt=null;this.swipe=null;this.pinched=false;this.pinchAt=null;this.fistAt=null;this.fistFired=false;}
+      out.armed=this.armed;out.hint=this.armed?'Верни руку в кадр':'Пауза. Покажи открытую ладонь';return out;
+    }
+    if(o.sampleId!=null && o.sampleId===this.lastSample)return {...out,duplicate:true};
+    this.lastSample=o.sampleId;this.lastSeen=now;
+    this.pointer=o.tip;out.pointer=this.pointer;
+    if(!this.armed){
+      if(o.pose==='PALM'){
+        if(this.palmAt===null)this.palmAt=now;
+        out.progress=Math.min(1,(now-this.palmAt)/600);
+        out.hint='Держи ладонь открытой — включаю управление';
+        if(out.progress>=1){this.armed=true;this.swipe=null;this.cooldown=now+350;out.actions.push({type:'armed'});out.hint='Управление включено';}
+      }else{this.palmAt=null;out.hint=o.hint??'Раскрой ладонь и удержи её 0,6 секунды';}
+      out.armed=this.armed;return out;
+    }
+    out.hint=o.hint??'Палец — указатель · ладонь — листать';
+    // Pinch has hysteresis and fires only once until fingers separate.
+    if(o.pinchRatio<.28 && o.pose!=='FIST'){
+      this.swipe=null;
+      if(this.pinchAt===null)this.pinchAt=now;
+      out.progress=Math.min(1,(now-this.pinchAt)/160);
+      out.hint='Щипок · увеличиваю выбранный фрагмент';
+      if(!this.pinched && out.progress>=1 && now>=this.cooldown){this.pinched=true;this.cooldown=now+450;out.actions.push({type:'zoom',point:o.tip});}
+      return out;
+    }
+    if(o.pinchRatio>.45){this.pinched=false;this.pinchAt=null;}
+    if(o.pose==='FIST'){
+      this.swipe=null;if(this.fistAt===null)this.fistAt=now;
+      out.progress=Math.min(1,(now-this.fistAt)/250);out.hint='Кулак · вернуть общий вид';
+      if(out.progress>=1 && !this.fistFired && now>=this.cooldown){this.fistFired=true;this.cooldown=now+300;out.actions.push({type:'resetZoom'});}
+    }else{this.fistAt=null;this.fistFired=false;}
+    if(o.pose==='PALM' && now>=this.cooldown){
+      if(!this.swipe || now-this.swipe.t>650)this.swipe={...o.palm,t:now};
+      const dx=o.palm.x-this.swipe.x,dy=o.palm.y-this.swipe.y,age=now-this.swipe.t;
+      if(Math.abs(dx)>.17 && age>=100){
+        if(Math.abs(dy)>.12){out.hint='Веди ладонь горизонтально, без движения вверх';out.error=true;this.swipe={...o.palm,t:now};}
+        else{out.actions.push({type:dx>0?'next':'previous'});this.cooldown=now+850;this.swipe=null;out.hint=dx>0?'Следующий слайд':'Предыдущий слайд';}
+      }else if(Math.abs(dx)>.07){out.hint='Продолжи взмах чуть дальше в сторону';out.progress=Math.min(1,Math.abs(dx)/.17);}
+    }else if(o.pose!=='PALM')this.swipe=null;
+    return out;
+  }
+}
+
+// Поза руки по 21 точке MediaPipe — собственные правила команды.
+// Для «почти правильных» поз возвращаем конкретную подсказку,
+// какой палец согнуть или выпрямить.
+
+const POSE = {
+  NONE: 'NONE',   // руки нет в кадре
+  POINT: 'POINT', // указательный палец — рисуем руны
+  PALM: 'PALM',   // открытая ладонь — заряд маны
+  FIST: 'FIST',   // кулак — щит
+  THUMB: 'THUMB', // большой палец вверх — «да / старт»
+  OTHER: 'OTHER',
+};
+
+const FINGERS = [
+  { name: 'указательный палец', mcp: 5, pip: 6, dip: 7, tip: 8 },
+  { name: 'средний палец', mcp: 9, pip: 10, dip: 11, tip: 12 },
+  { name: 'безымянный палец', mcp: 13, pip: 14, dip: 15, tip: 16 },
+  { name: 'мизинец', mcp: 17, pip: 18, dip: 19, tip: 20 },
+];
+
+const d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+function list(names) {
+  if (names.length < 2) return names[0] ?? '';
+  return `${names.slice(0, -1).join(', ')} и ${names[names.length - 1]}`;
+}
+
+const sub3 = (a, b) => ({ x: a.x - b.x, y: a.y - b.y, z: (a.z ?? 0) - (b.z ?? 0) });
+function angle3(u, v) {
+  const dot = u.x * v.x + u.y * v.y + u.z * v.z;
+  const l = Math.hypot(u.x, u.y, u.z) * Math.hypot(v.x, v.y, v.z) || 1;
+  return (Math.acos(Math.max(-1, Math.min(1, dot / l))) * 180) / Math.PI;
+}
+
+/**
+ * Состояние каждого пальца. Если есть 3D-точки (world — в метрах), палец
+ * прямой по углу сгиба в суставах: так он распознаётся, даже когда смотрит
+ * прямо в камеру и на картинке выглядит коротким. Без 3D — запасной способ
+ * по расстояниям на экране.
+ */
+function fingerStates(lm, world) {
+  if (world) {
+    return FINGERS.map(f => {
+      const bend = angle3(sub3(world[f.pip], world[f.mcp]), sub3(world[f.tip], world[f.pip]));
+      return bend < 40 ? 'ext' : bend > 75 ? 'curl' : 'half';
+    });
+  }
+  const wrist = lm[0];
+  return FINGERS.map(f => {
+    const r = d(lm[f.tip], wrist) / d(lm[f.pip], wrist);
+    return r > 1.15 ? 'ext' : r < 1.08 ? 'curl' : 'half';
+  });
+}
+
+/** lm — 21 точка в пикселях экрана, world — те же точки в 3D. Возвращает { pose, near, hint }. */
+function classifyHand(lm, world = null) {
+  const scale = d(lm[0], lm[9]) || 1;
+  const st = fingerStates(lm, world);
+  const [index, ...others] = st;
+  const nExt = st.filter(s => s === 'ext').length;
+  const nCurl = st.filter(s => s === 'curl').length;
+  const thumbOut = d(lm[4], lm[9]) / scale > 0.72;
+  const namesWhere = test => FINGERS.filter((_, i) => test(st[i], i)).map(f => f.name);
+
+  // Правила с запасом: живая рука редко сгибает пальцы идеально.
+  if (nExt === 4 || (nExt === 3 && nCurl === 0)) return { pose: POSE.PALM };
+  if (index === 'ext' && others.every(s => s !== 'ext') && others.filter(s => s === 'curl').length >= 2) return { pose: POSE.POINT };
+  if (nExt === 0 && nCurl >= 3) {
+    const thumbUp = thumbOut && lm[4].y < lm[5].y - 0.35 * scale && lm[4].y < lm[3].y;
+    return { pose: thumbUp ? POSE.THUMB : POSE.FIST };
+  }
+
+  // Почти-позы: говорим, что именно исправить.
+  if (index === 'ext') {
+    const bad = namesWhere((s, i) => i > 0 && s !== 'curl');
+    return { pose: POSE.OTHER, near: POSE.POINT, hint: `Чтобы рисовать, согни ${list(bad)} — вытянут только указательный` };
+  }
+  if (index === 'half' && others.every(s => s === 'curl')) {
+    return { pose: POSE.OTHER, near: POSE.POINT, hint: 'Выпрями указательный палец до конца — это твоя волшебная палочка' };
+  }
+  if (nExt >= 2 && nCurl === 0) {
+    return { pose: POSE.OTHER, near: POSE.PALM, hint: `Раскрой ладонь полностью — выпрями ${list(namesWhere(s => s !== 'ext'))}` };
+  }
+  if (nCurl >= 2) {
+    return { pose: POSE.OTHER, near: POSE.FIST, hint: `Сожми кулак плотнее — согни ${list(namesWhere(s => s !== 'curl'))}` };
+  }
+  return { pose: POSE.OTHER };
+}
+
+const POSE_NAMES = {
+  [POSE.POINT]: 'палец — рисую',
+  [POSE.PALM]: 'ладонь',
+  [POSE.FIST]: 'кулак',
+  [POSE.THUMB]: 'большой палец вверх',
+  [POSE.OTHER]: 'жест не распознан',
+  [POSE.NONE]: 'руки не видно',
+};
+
+const $ = id => document.getElementById(id);
+const engine = new GestureEngine();
+const slides=[...document.querySelectorAll('.slide')];
+const CDN='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1';
+const MODEL='https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+let index=0,mode='idle',session=0,stream=null,worker=null,workerURL=null,detector=null;
+let inflight=false,lastVideo=-1,lastSubmit=0,lastSeen=-Infinity,lastObs=null,handResult=null;
+let started=0,changes=0,zooms=0,visited=new Set([0]),feedbackUntil=0,hovered=null,hoveredAt=0;
+let dwellTarget=null,dwellSince=0,dwellFired=false,lastUi=performance.now(),cursorPoint=null;
+const finishTemplate=$('welcome').innerHTML;
+function hint(text,error=false,hold=0){
+  if(performance.now()<feedbackUntil && !hold)return;
+  $('hint').textContent=text;$('hintBox').classList.toggle('error',error);
+  $('hintLabel').textContent=error?'КАК ИСПРАВИТЬ':'СЛЕДУЮЩИЙ ШАГ';
+  if(hold)feedbackUntil=performance.now()+hold;
+}
+function setState(text,on=false){$('cameraState').textContent=text;$('statusLight').classList.toggle('on',on);}
+function mark(id){$('guide-'+id).classList.add('done');}
+function hideZoom(){ $('zoom').classList.remove('open');$('zoomCopy').replaceChildren();mark('reset'); }
+function move(delta){
+  if(mode==='idle'||mode==='loading'||mode==='done')return;
+  if($('zoom').classList.contains('open')){hint('Сначала сожми кулак — верни общий вид',true,1700);return;}
+  if(index+delta<0){hint('Это первый слайд. Сделай взмах вправо',false,1600);return;}
+  if(index+delta>=slides.length){finish();return;}
+  index+=delta;changes++;visited.add(index);slides.forEach((s,i)=>s.classList.toggle('active',i===index));
+  [...$('dots').children].forEach((d,i)=>d.classList.toggle('on',i===index));$('count').textContent=`0${index+1} / 04`;
+  hovered?.classList.remove('targeted');hovered=null;mark('swipe');hint(index===1?'Наведи палец на карточку и сделай щипок':'Палец — указатель · ладонь — листать',false,1500);
+}
+function finish(){
+  if(mode==='idle'||mode==='loading'||mode==='done')return;
+  const duration=Math.round((performance.now()-started)/1000);mode='done';engine.reset();
+  $('cursor').style.display='none';$('curtain').classList.remove('hidden');
+  $('welcome').innerHTML=`<span class="eyebrow">Выступление завершено</span><h2>Главное<br>уже сказано.</h2><div class="result-stats"><div><b>${visited.size}/4</b><small>слайдов показано</small></div><div><b>${duration}</b><small>секунд</small></div><div><b>${zooms}</b><small>увеличений</small></div></div><p>Ты управляешь темпом, фокусом и вниманием.</p><div class="welcome-actions"><button class="primary gesture-button" id="again">Ещё раз</button><button class="quiet" id="stopDone">Выключить камеру</button></div><p class="tiny">В режиме камеры: покажи ладонь, затем наведи палец на «Ещё раз».</p>`;
+  $('again').onclick=()=>begin(stream?'camera':'demo');$('stopDone').onclick=()=>stop();
+  hint('Готово. Начни снова или выключи камеру.',false,1500);
+}
+function zoomTarget(target){
+  if(!target){hint('Наведи указатель на карточку или блок, затем соедини большой и указательный пальцы',true,2400);return;}
+  const clone=target.cloneNode(true);clone.removeAttribute('tabindex');clone.classList.remove('targeted','focusable','card');
+  $('zoomCopy').replaceChildren(clone);$('zoom').classList.add('open');zooms++;mark('zoom');
+  hint('Деталь увеличена. Сожми кулак для общего вида',false,1800);
+}
+function begin(nextMode){
+  mode=nextMode;index=0;changes=0;zooms=0;visited=new Set([0]);started=performance.now();engine.reset();
+  slides.forEach((s,i)=>s.classList.toggle('active',i===0));[...$('dots').children].forEach((d,i)=>d.classList.toggle('on',i===0));
+  $('count').textContent='01 / 04';$('zoom').classList.remove('open');$('curtain').classList.add('hidden');
+  document.querySelectorAll('.guide-row').forEach(e=>e.classList.remove('done'));
+  $('demoHelp').classList.toggle('show',nextMode==='demo');$('modeBadge').textContent=nextMode==='demo'?'Демо · без камеры':'Камера · на устройстве';
+  hint(nextMode==='demo'?'Попробуй стрелки ← →. На втором слайде нажми на карточку.':'Раскрой ладонь и удержи её 0,6 секунды',false,1000);
+  if(nextMode==='demo')setState('Деморежим · камера выключена');
+}
+function stop(){
+  session++;stream?.getTracks().forEach(t=>t.stop());stream=null;worker?.terminate();worker=null;
+  if(workerURL){URL.revokeObjectURL(workerURL);workerURL=null;}detector?.close();detector=null;
+  inflight=false;lastObs=null;handResult=null;engine.reset();mode='idle';
+  $('video').srcObject=null;$('cameraEmpty').style.display='grid';$('cameraToggle').textContent='Включить камеру';
+  $('cursor').style.display='none';$('curtain').classList.remove('hidden');$('welcome').innerHTML=finishTemplate;bindWelcome();
+  $('demoHelp').classList.remove('show');$('modeBadge').textContent='Без установки';setState('Камера выключена');$('progress').style.width='0';
+  const c=$('handCanvas');c.getContext('2d').clearRect(0,0,c.width,c.height);
+}
+async function createDetector(){
+  const {HandLandmarker,FilesetResolver}=await import(CDN+'/vision_bundle.mjs');
+  const fileset=await FilesetResolver.forVisionTasks(CDN+'/wasm');
+  const options=delegate=>({baseOptions:{modelAssetPath:MODEL,delegate},runningMode:'VIDEO',numHands:1,minHandDetectionConfidence:.5,minHandPresenceConfidence:.5,minTrackingConfidence:.5});
+  try{return await HandLandmarker.createFromOptions(fileset,options('GPU'));}
+  catch{return await HandLandmarker.createFromOptions(fileset,options('CPU'));}
+}
+async function loadTracking(token){
+  try{
+    if(typeof Worker==='undefined'||typeof createImageBitmap==='undefined')throw new Error('Compatibility mode');
+    const source=`const CDN=${JSON.stringify(CDN)},MODEL=${JSON.stringify(MODEL)};let model;self.onmessage=async({data:d})=>{try{if(d.type==='init'){const {HandLandmarker,FilesetResolver}=await import(CDN+'/vision_bundle.mjs');const fs=await FilesetResolver.forVisionTasks(CDN+'/wasm');const opts=delegate=>({baseOptions:{modelAssetPath:MODEL,delegate},runningMode:'VIDEO',numHands:1});try{model=await HandLandmarker.createFromOptions(fs,opts('GPU'));}catch{model=await HandLandmarker.createFromOptions(fs,opts('CPU'));}self.postMessage({type:'ready'});}else{try{self.postMessage({type:'result',result:model.detectForVideo(d.bitmap,d.time),time:d.time});}finally{d.bitmap.close();}}}catch(e){self.postMessage({type:'error',message:String(e)});}};`;
+    workerURL=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));worker=new Worker(workerURL);
+    await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Worker timeout')),15000);worker.onmessage=({data})=>{if(data.type==='ready'){clearTimeout(timer);resolve();}else if(data.type==='error'){clearTimeout(timer);reject(new Error(data.message));}};worker.onerror=e=>{clearTimeout(timer);reject(e);};worker.postMessage({type:'init'});});
+    if(token!==session)return;
+    worker.onmessage=({data})=>{if(token!==session)return;if(data.type==='result'){inflight=false;if(performance.now()-data.time<450)observe(data.result,data.time);}else if(data.type==='error')recover(token);};
+    worker.onerror=()=>recover(token);
+  }catch{
+    worker?.terminate();worker=null;if(workerURL){URL.revokeObjectURL(workerURL);workerURL=null;}
+    if(token!==session)return;const d=await createDetector();if(token!==session)d.close();else detector=d;
+  }
+}
+let recovering=false;
+async function recover(token){
+  if(recovering||token!==session)return;recovering=true;worker?.terminate();worker=null;inflight=false;
+  hint('Переключаю режим распознавания. Управление временно приостановлено.',false,3000);engine.reset();
+  try{const d=await createDetector();if(token!==session)d.close();else detector=d;}
+  catch{if(token===session){stop();hint('Не удалось запустить модель. Проверь интернет и попробуй снова.',true,6000);}}
+  finally{recovering=false;}
+}
+async function start(){
+  if(mode==='loading')return;stop();mode='loading';const token=session;
+  $('start').disabled=true;$('demo').disabled=true;$('cameraToggle').disabled=true;$('loadStatus').textContent='Разреши камеру. Затем загрузится модель распознавания…';
+  try{
+    if(!navigator.mediaDevices?.getUserMedia)throw new Error('secure');
+    const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480},frameRate:{ideal:30,max:30}},audio:false});
+    if(token!==session){s.getTracks().forEach(t=>t.stop());return;}stream=s;$('video').srcObject=s;await $('video').play();
+    $('loadStatus').textContent='Загружаю распознавание. Первый запуск может занять несколько секунд…';
+    await loadTracking(token);if(token!==session)return;
+    $('cameraEmpty').style.display='none';$('cameraToggle').textContent='Выключить камеру';lastVideo=-1;lastSubmit=0;lastSeen=-Infinity;
+    begin('camera');setState('Покажи открытую ладонь');
+  }catch(e){if(token!==session)return;stop();const msg=e.name==='NotAllowedError'?'Камера запрещена. Разреши её в настройках сайта и повтори.':e.name==='NotFoundError'?'Камера не найдена. Подключи её или открой демо.':e.message==='secure'?'Для камеры открой файл через localhost или HTTPS. Деморежим работает без камеры.':'Не удалось загрузить камеру или модель. Проверь интернет и повтори.';hint(msg,true,7000);$('loadStatus').textContent=msg;}
+  finally{$('cameraToggle').disabled=false;if($('start'))$('start').disabled=false;if($('demo'))$('demo').disabled=false;}
+}
+function bindWelcome(){if($('start'))$('start').onclick=start;if($('demo'))$('demo').onclick=()=>{stop();begin('demo');};}
+bindWelcome();$('cameraToggle').onclick=()=>{if(stream||mode==='loading'){stop();}else start();};
+$('prev').onclick=()=>move(-1);$('next').onclick=()=>move(1);$('finish').onclick=finish;
+function toScreen(p){const r=document.querySelector('.workspace>section').getBoundingClientRect();return{x:r.left+Math.max(0,Math.min(1,p.x))*r.width,y:r.top+Math.max(0,Math.min(1,p.y))*r.height};}
+function pointAt(p){
+  const screen=toScreen(p);cursorPoint=cursorPoint?{x:cursorPoint.x+(screen.x-cursorPoint.x)*.6,y:cursorPoint.y+(screen.y-cursorPoint.y)*.6}:screen;
+  $('cursor').style.left=cursorPoint.x+'px';$('cursor').style.top=cursorPoint.y+'px';
+  const target=document.elementFromPoint(cursorPoint.x,cursorPoint.y)?.closest('.focusable');
+  if(target && slides[index].contains(target)){if(hovered!==target){hovered?.classList.remove('targeted');hovered=target;hovered.classList.add('targeted');}hoveredAt=performance.now();}
+  else if(performance.now()-hoveredAt>800){hovered?.classList.remove('targeted');hovered=null;}
+}
+function observe(res, time){
+  handResult=res;const norm=res.landmarks?.[0];lastSeen=performance.now();
+  if(!norm){lastObs={present:false};return;}
+  const px=norm.map(p=>({x:(1-p.x)*640,y:p.y*480}));const pose=classifyHand(px,res.worldLandmarks?.[0]);
+  const scale=Math.hypot(px[0].x-px[9].x,px[0].y-px[9].y)||1;
+  const o={...pose,present:true,sampleId:time,pinchRatio:Math.hypot(px[4].x-px[8].x,px[4].y-px[8].y)/scale,
+    tip:{x:((1-norm[8].x)-.1)/.8,y:(norm[8].y-.05)/.9},palm:{x:1-norm[9].x,y:norm[9].y}};
+  const reach=Math.hypot(px[8].x-px[0].x,px[8].y-px[0].y)/scale;
+  if(o.pinchRatio<.28 && reach>1.15) o.pose='PINCH';
+  lastObs=o;const out=engine.update(o,time);$('progress').style.width=out.progress*100+'%';
+  if(out.armed){setState('Управление включено',true);$('cursor').style.display='block';pointAt(o.tip);}else{setState('Ладонь → включить управление');$('cursor').style.display='none';}
+  hint(out.hint,out.error);
+  for(const a of out.actions){if(a.type==='armed'){mark('arm');hint('Готово. Взмахни открытой ладонью вправо',false,1600);}else if(mode!=='done'){if(a.type==='next')move(1);if(a.type==='previous')move(-1);if(a.type==='resetZoom')hideZoom();if(a.type==='zoom')zoomTarget(hovered);}}
+}
+function drawHand(){
+  const c=$('handCanvas'),ctx=c.getContext('2d');if(c.width!==640){c.width=640;c.height=480;}ctx.clearRect(0,0,640,480);
+  if(!handResult?.landmarks?.[0]||performance.now()-lastSeen>450)return;
+  const lm=handResult.landmarks[0],links=[[0,5],[5,9],[9,13],[13,17],[17,0],[0,1],[1,2],[2,3],[3,4],[5,6],[6,7],[7,8],[9,10],[10,11],[11,12],[13,14],[14,15],[15,16],[17,18],[18,19],[19,20]];
+  ctx.strokeStyle=engine.armed?'#90d1b5':'#fb9a60';ctx.lineWidth=2;ctx.beginPath();for(const[a,b]of links){ctx.moveTo((1-lm[a].x)*640,lm[a].y*480);ctx.lineTo((1-lm[b].x)*640,lm[b].y*480);}ctx.stroke();ctx.fillStyle='#f3f1e9';for(const p of lm){ctx.beginPath();ctx.arc((1-p.x)*640,p.y*480,3,0,Math.PI*2);ctx.fill();}
+}
+function frame(now){
+  if(document.hidden){engine.reset();lastObs=null;requestAnimationFrame(frame);return;}
+  if(stream && !recovering && (mode==='camera'||mode==='done')){
+    const v=$('video');if(inflight&&now-lastSubmit>2000)recover(session);
+    if(!inflight && v.readyState>=2 && v.currentTime!==lastVideo && now-lastSubmit>(detector?55:35)){
+      lastVideo=v.currentTime;lastSubmit=now;
+      if(worker){inflight=true;const target=worker,token=session;createImageBitmap(v).then(bitmap=>{if(target!==worker||token!==session){bitmap.close();return;}target.postMessage({type:'frame',bitmap,time:now},[bitmap]);}).catch(()=>recover(token));}
+      else if(detector){try{observe(detector.detectForVideo(v,now),now);}catch{recover(session);}}
+    }
+    if(!lastObs?.present||now-lastSeen>450){const state=engine.update(null,now);$('cursor').style.display='none';$('progress').style.width='0';setState(state.armed?'Верни руку в кадр':'Управление на паузе');hint(state.hint);dwellTarget=null;}
+    else if(engine.armed && lastObs.pose==='POINT' && cursorPoint){
+      const btn=document.elementFromPoint(cursorPoint.x,cursorPoint.y)?.closest('.gesture-button');
+      if(btn!==dwellTarget){dwellTarget?.classList.remove('dwell');dwellTarget=btn;dwellSince=now;dwellFired=false;}
+      if(btn){btn.classList.add('dwell');$('progress').style.width=Math.min(100,(now-dwellSince)/9)+'%';if(now-dwellSince>900&&!dwellFired){dwellFired=true;btn.click();}}
+    }else{dwellTarget?.classList.remove('dwell');dwellTarget=null;}
+    drawHand();
+  }
+  if(mode==='camera'||mode==='demo'){const sec=Math.floor((now-started)/1000);$('clock').textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');}
+  lastUi=now;requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+addEventListener('keydown',e=>{if(mode!=='demo')return;if(e.key==='ArrowRight')move(1);if(e.key==='ArrowLeft')move(-1);if(e.key.toLowerCase()==='f'||e.key==='Escape')hideZoom();});
+document.querySelectorAll('.focusable').forEach(el=>{el.onclick=()=>{if(mode==='demo')zoomTarget(el);};el.onkeydown=e=>{if(mode==='demo'&&e.key==='Enter')zoomTarget(el);};});
+addEventListener('pointermove',e=>{if(mode==='demo'&&e.target.closest('#stage')){$('cursor').style.display='block';$('cursor').style.left=e.clientX+'px';$('cursor').style.top=e.clientY+'px';}else if(mode==='demo')$('cursor').style.display='none';});
+addEventListener('pagehide',()=>{stream?.getTracks().forEach(t=>t.stop());worker?.terminate();detector?.close();});
+
+</script></body></html>
