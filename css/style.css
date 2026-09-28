@@ -83,3 +83,21 @@ h1 {
 #startBtn:disabled { opacity: 0.6; cursor: wait; }
 
 .note { margin: 14px 0 0; color: #a99fd6; font-size: 14px; }
+
+.progress {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.progress[hidden] { display: none; }
+
+#loadBar {
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #8b7dff, #ffd166);
+  transition: width 0.2s;
+}
+
+.load { margin: 8px 0 16px; color: #cfc4ff; font-size: 14px; }

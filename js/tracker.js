@@ -1,8 +1,6 @@
 // Камера и MediaPipe Pose Landmarker: кадр → 33 точки тела.
-import { FilesetResolver, PoseLandmarker } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/vision_bundle.mjs';
-
-const WASM = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm';
-const MODEL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
+// Движок и модель лежат в репозитории (vendor/, models/) и скачиваются заранее (loader.js).
+import { PoseLandmarker } from '../vendor/mediapipe/vision_bundle.mjs';
 
 export async function startCamera(video) {
   const stream = await navigator.mediaDevices.getUserMedia({
@@ -14,10 +12,10 @@ export async function startCamera(video) {
   if (!video.videoWidth) await new Promise(r => video.addEventListener('loadedmetadata', r, { once: true }));
 }
 
-export async function createPoseTracker() {
-  const fileset = await FilesetResolver.forVisionTasks(WASM);
+/** assets — результат preload(): { fileset, model }. */
+export async function createPoseTracker({ fileset, model }) {
   const options = delegate => ({
-    baseOptions: { modelAssetPath: MODEL, delegate },
+    baseOptions: { modelAssetBuffer: model, delegate },
     runningMode: 'VIDEO',
     numPoses: 1,
     minPoseDetectionConfidence: 0.5,
