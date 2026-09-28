@@ -113,7 +113,9 @@ function drawCameraWindow(dt) {
   ctx.stroke();
   ctx.restore();
   const known = input.present && input.pose !== POSE.OTHER;
-  label(ctx, input.present ? POSE_NAMES[input.pose] : 'подними руку', x + 10, y + 13, { size: 12, weight: 700, color: known ? C.teal : input.present ? C.amber : C.danger, align: 'left' });
+  const DRAW = { arming: 'замри на миг — и рисуй', drawing: 'рисую… замри, когда закончишь', checking: 'проверяю · сдвинь палец для новой руны' };
+  const text = input.pose === POSE.POINT && DRAW[input.drawState] ? DRAW[input.drawState] : POSE_NAMES[input.pose];
+  label(ctx, input.present ? text : 'подними руку', x + 10, y + 13, { size: 12, weight: 700, color: known ? C.teal : input.present ? C.amber : C.danger, align: 'left' });
 }
 
 // Курсор руки на сцене: кольцо цвета позы и значок жеста рядом.
@@ -130,10 +132,12 @@ function drawCursor() {
   ctx.fillStyle = halo;
   ctx.fillRect(p.x - 26, p.y - 26, 52, 52);
   ctx.strokeStyle = color;
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = input.drawState === 'drawing' ? 2.5 : 1.5;
+  if (input.pose === POSE.POINT && input.drawState === 'arming') ctx.setLineDash([3, 4]);
   ctx.beginPath();
   ctx.arc(p.x, p.y, 10 + Math.sin(time * 5) * 1.5, 0, Math.PI * 2);
   ctx.stroke();
+  ctx.setLineDash([]);
   ctx.fillStyle = C.ivory;
   ctx.beginPath();
   ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);

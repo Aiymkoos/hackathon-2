@@ -199,7 +199,7 @@ export class BattleScene {
     const { toast, feedback, sfx, minDim } = this.app;
     const expected = [...new Set([...this.monsters.map(m => m.runes[m.idx]), ...(this.boss ? [this.boss.queue[0]] : [])])];
     this.stats.attempts++;
-    const res = recognize(pts, { minSize: minDim * 0.14, expected: expected.length ? expected : RUNE_IDS });
+    const res = recognize(pts, { minSize: this.app.input.runeMinSize(minDim), expected: expected.length ? expected : RUNE_IDS });
     if (res.ok && expected.includes(res.rune)) return this.castRune(res.rune, pts);
     if (res.ok) {
       feedback.success(pts, RUNES[res.rune].color);
