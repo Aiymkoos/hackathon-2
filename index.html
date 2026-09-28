@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Сиқыршы — магия жестами</title>
+  <meta name="description" content="Игра, где магию колдуют жестами руки через веб-камеру">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <video id="video" playsinline muted></video>
+  <canvas id="stage"></canvas>
+
+  <div id="start" class="overlay">
+    <div class="card">
+      <h1>СИҚЫРШЫ</h1>
+      <p class="sub">Маг рун: защищайся от жынов жестами рук через веб-камеру</p>
+      <ul class="howto">
+        <li><span>☝</span> Указательный палец — рисуй руны в воздухе</li>
+        <li><span>✊</span> Кулак — щит от огня босса</li>
+        <li><span>🖐</span> Ладонь + толчок к камере — взрыв маны</li>
+        <li><span>👍</span> Большой палец вверх — старт</li>
+      </ul>
+      <button id="startBtn">Включить камеру</button>
+      <p class="note" id="status">Видео обрабатывается прямо в браузере и никуда не отправляется.</p>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
