@@ -1,4 +1,5 @@
 // Итоги концерта: звёзды, разбор по навыкам, частая ошибка с советом, рекорды.
+import { C } from '../theme.js';
 import { DwellButton, label, roundRect } from '../ui.js';
 import { ERRORS } from './concert.js';
 import { store } from '../store.js';
@@ -14,8 +15,8 @@ export class ResultsScene {
   constructor(app) {
     this.app = app;
     this.buttons = [
-      new DwellButton('↻  Ещё раз', () => app.go('concert'), { color: '#ffd166' }),
-      new DwellButton('↩  Меню', () => app.go('menu'), { color: '#8b7dff' }),
+      new DwellButton('Ещё раз', () => app.go('concert'), { color: C.gold }),
+      new DwellButton('Меню', () => app.go('menu'), { color: C.gold }),
     ];
   }
 
@@ -50,29 +51,29 @@ export class ResultsScene {
     const bottom = this.buttons[0].rect.y - 16;
     this.toastBottom = bottom;
     roundRect(ctx, px, py, pw, bottom - py - 60, 20);
-    ctx.fillStyle = 'rgba(12,6,34,0.88)';
+    ctx.fillStyle = C.surface;
     ctx.fill();
 
     let y = py + s * 1.8;
-    label(ctx, `${'★'.repeat(stars)}${'☆'.repeat(5 - stars)}`, W / 2, y, { size: s * 1.8, color: '#ffd166', outline: false });
+    label(ctx, `${'★'.repeat(stars)}${'☆'.repeat(5 - stars)}`, W / 2, y, { size: s * 1.8, color: C.gold, outline: false });
     y += s * 2.1;
-    label(ctx, `${Math.round(total * this.shown)} баллов из 100`, W / 2, y, { size: s * 1.3, weight: 800, outline: false });
-    if (this.rank === 1) label(ctx, '★ Лучший концерт!', W / 2, y + s * 1.2, { size: s * 0.75, color: '#ffd166', outline: false });
+    label(ctx, `${Math.round(total * this.shown)} баллов из 100`, W / 2, y, { size: s * 1.3, weight: 700, title: true, outline: false });
+    if (this.rank === 1) label(ctx, '★ Лучший концерт!', W / 2, y + s * 1.2, { size: s * 0.75, color: C.gold, outline: false });
     y += s * 2.2;
-    label(ctx, `Критик: ${this.critic}`, W / 2, y, { size: s * 0.75, weight: 500, color: '#e6ddff', outline: false });
+    label(ctx, `Критик: ${this.critic}`, W / 2, y, { size: s * 0.75, weight: 500, color: C.cream, outline: false });
     y += s * 1.6;
 
     const rows = [
-      ['Темп и ровность', parts.tempo, '#6ee7ff'],
-      ['Динамика (громко/тихо)', parts.dynamics, '#b69cff'],
-      ['Вступления групп', parts.cues, '#7dff9b'],
-      ['Фермата и снятие', parts.finale, '#ffd166'],
+      ['Темп и ровность', parts.tempo, '#a8c8dc'],
+      ['Динамика (громко/тихо)', parts.dynamics, '#c9a0b0'],
+      ['Вступления групп', parts.cues, C.ok],
+      ['Фермата и снятие', parts.finale, C.gold],
     ];
     const bw = pw * 0.42, bx = W / 2 + 10, bh = s * 0.7;
     for (const [name, v, color] of rows) {
       label(ctx, name, W / 2 - 10, y, { size: s * 0.72, weight: 500, align: 'right', outline: false });
       roundRect(ctx, bx, y - bh / 2, bw, bh, bh / 2);
-      ctx.fillStyle = 'rgba(255,255,255,0.1)';
+      ctx.fillStyle = 'rgba(243,230,207,0.1)';
       ctx.fill();
       roundRect(ctx, bx, y - bh / 2, Math.max(bh, bw * v * this.shown), bh, bh / 2);
       ctx.fillStyle = color;
@@ -82,16 +83,16 @@ export class ResultsScene {
     }
     y += s * 0.5;
     if (this.topError) {
-      label(ctx, `Частая ошибка: ${this.topError.label} (${this.topError.count})`, W / 2, y, { size: s * 0.72, color: '#ff8fa3', outline: false });
+      label(ctx, `Частая ошибка: ${this.topError.label} (${this.topError.count})`, W / 2, y, { size: s * 0.72, color: C.danger, outline: false });
       label(ctx, `Совет: ${this.topError.advice}`, W / 2, y + s * 1.1, { size: s * 0.66, weight: 500, outline: false });
-    } else label(ctx, 'Без единой ошибки — настоящий маэстро!', W / 2, y, { size: s * 0.8, color: '#7dff9b', outline: false });
+    } else label(ctx, 'Без единой ошибки — настоящий маэстро!', W / 2, y, { size: s * 0.8, color: C.ok, outline: false });
     y += s * 2.4;
 
     if (this.records.length && y + s * 1.1 * this.records.length < bottom - 60) {
-      label(ctx, '🏆 Лучшие концерты', W / 2, y, { size: s * 0.72, color: '#ffd166', outline: false });
+      label(ctx, 'Лучшие концерты', W / 2, y, { size: s * 0.72, color: C.gold, outline: false });
       this.records.forEach((r, i) => {
         const mine = i + 1 === this.rank;
-        label(ctx, `${i + 1}. ${r.score} баллов · ${'★'.repeat(r.stars)} · ${r.date}`, W / 2, y + s * 1.05 * (i + 1), { size: s * 0.62, weight: mine ? 800 : 500, color: mine ? '#ffd166' : '#fff', outline: false });
+        label(ctx, `${i + 1}. ${r.score} баллов · ${'★'.repeat(r.stars)} · ${r.date}`, W / 2, y + s * 1.05 * (i + 1), { size: s * 0.62, weight: mine ? 800 : 500, color: mine ? C.gold : C.cream, outline: false });
       });
     }
 

@@ -1,4 +1,5 @@
 // Точка входа: камера → MediaPipe Pose → анализ дирижёра → сцена → отрисовка.
+import { C, drawCurtains } from './theme.js';
 import { Conductor, readBody } from './conductor.js';
 import { Orchestra } from './music.js';
 import { Effects } from './effects.js';
@@ -60,35 +61,38 @@ addEventListener('resize', resize);
 const toScreen = p => ({ x: view.ox + (1 - p.x) * view.dw, y: view.oy + p.y * view.dh, visibility: p.visibility });
 
 // Затемнённое видео и «луч прожектора» на дирижёре.
+// Сцена: видео с камеры в тёплом тоне, луч прожектора на дирижёре, занавес.
 function drawBackground() {
-  const { W, H, minDim, body } = app;
+  const { W, H, minDim, body, time } = app;
   if (video.videoWidth) {
     ctx.save();
     ctx.translate(W, 0);
     ctx.scale(-1, 1);
+    ctx.filter = 'sepia(0.35) saturate(0.85) brightness(0.9)';
     ctx.drawImage(video, view.ox, view.oy, view.dw, view.dh);
     ctx.restore();
   } else {
-    ctx.fillStyle = '#1a0f3a';
+    ctx.fillStyle = '#1c0b0e';
     ctx.fillRect(0, 0, W, H);
   }
   const cx = body?.shouldersOk ? body.nose.x : W / 2;
   const cy = body?.shouldersOk ? body.nose.y : H * 0.45;
-  const g = ctx.createRadialGradient(cx, cy, minDim * 0.15, cx, cy, Math.max(W, H) * 0.7);
-  g.addColorStop(0, 'rgba(20,8,50,0.25)');
-  g.addColorStop(0.5, 'rgba(14,6,40,0.62)');
-  g.addColorStop(1, 'rgba(6,2,20,0.88)');
+  const g = ctx.createRadialGradient(cx, cy, minDim * 0.12, cx, cy, Math.max(W, H) * 0.7);
+  g.addColorStop(0, 'rgba(255,214,150,0.05)');
+  g.addColorStop(0.35, 'rgba(28,8,12,0.55)');
+  g.addColorStop(1, 'rgba(8,2,4,0.92)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
+  drawCurtains(ctx, W, H, time);
 }
 
-// Курсор правой руки для кнопок «наведи и держи».
+// Курсор руки для кнопок «наведи и держи».
 function drawPointer() {
   const { body, time } = app;
   if (!body?.pointer || app.scene === app.scenes.concert) return;
   const p = body.pointer;
   ctx.save();
-  ctx.strokeStyle = '#ffd166';
+  ctx.strokeStyle = C.gold;
   ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.arc(p.x, p.y, 14 + Math.sin(time * 6) * 2, 0, Math.PI * 2);
@@ -105,7 +109,7 @@ function drawBodyStatus() {
   const b = app.body;
   const mark = ok => (ok ? '✓' : '✗');
   const text = b ? `вижу: плечи ${mark(b.shouldersOk)} · правая рука ${mark(b.rightOk)} · левая рука ${mark(b.leftOk)}` : 'не вижу человека в кадре';
-  label(ctx, text, app.W - 16, 20, { size: 13, weight: 500, align: 'right', color: b?.shouldersOk ? '#cfc4ff' : '#ff8fa3' });
+  label(ctx, text, app.W - 16, 20, { size: 13, weight: 500, align: 'right', color: b?.shouldersOk ? C.muted : C.danger });
 }
 
 let tracker = null;

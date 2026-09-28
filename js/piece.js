@@ -2,11 +2,11 @@
 // Каждая нота: { beat, section, midi, dur } — время и длительность в долях.
 
 export const SECTIONS = {
-  brass:   { name: 'Трубы',      icon: '🎺', color: '#ffb020', cue: true },
-  flutes:  { name: 'Флейты',     icon: '🎶', color: '#7dff9b', cue: true },
-  timpani: { name: 'Литавры',    icon: '🥁', color: '#ff5a7a', cue: true },
-  strings: { name: 'Скрипки',    icon: '🎻', color: '#6ee7ff', cue: false },
-  cellos:  { name: 'Виолончели', icon: '🎻', color: '#b69cff', cue: false },
+  brass:   { name: 'Трубы',      icon: 'trumpet', color: '#e0a340', cue: true },
+  flutes:  { name: 'Флейты',     icon: 'flute', color: '#a9cf9a', cue: true },
+  timpani: { name: 'Литавры',    icon: 'timpani', color: '#d9745c', cue: true },
+  strings: { name: 'Скрипки',    icon: 'violin', color: '#a8c8dc', cue: false },
+  cellos:  { name: 'Виолончели', icon: 'cello', color: '#c9a0b0', cue: false },
 };
 
 const A = [[64, 1], [64, 1], [65, 1], [67, 1], [67, 1], [65, 1], [64, 1], [62, 1], [60, 1], [60, 1], [62, 1], [64, 1], [64, 1.5], [62, 0.5], [62, 2]];

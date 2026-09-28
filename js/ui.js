@@ -1,9 +1,11 @@
 // Общие элементы интерфейса: текст, подсказки, кнопки «наведи и держи».
 
-export const FONT = 'Rubik, sans-serif';
+import { C, BODY_FONT, TITLE_FONT } from './theme.js';
 
-export function font(ctx, size, weight = 600) {
-  ctx.font = `${weight} ${Math.round(size)}px ${FONT}`;
+export const FONT = BODY_FONT;
+
+export function font(ctx, size, weight = 600, family = FONT) {
+  ctx.font = `${weight} ${Math.round(size)}px ${family}`;
 }
 
 export function roundRect(ctx, x, y, w, h, r) {
@@ -16,13 +18,14 @@ export function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-export function label(ctx, str, x, y, { size = 24, color = '#fff', weight = 700, align = 'center', outline = true } = {}) {
-  font(ctx, size, weight);
+export function label(ctx, str, x, y, { size = 24, color = C.cream, weight = 700, align = 'center', outline = true, title = false, italic = false } = {}) {
+  font(ctx, size, weight, title ? TITLE_FONT : FONT);
+  if (italic) ctx.font = `italic ${ctx.font}`;
   ctx.textAlign = align;
   ctx.textBaseline = 'middle';
   if (outline) {
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = 'rgba(8,4,24,0.75)';
+    ctx.strokeStyle = 'rgba(12,4,6,0.8)';
     ctx.lineWidth = Math.max(3, size / 6);
     ctx.strokeText(str, x, y);
   }
@@ -46,10 +49,10 @@ function wrap(ctx, text, maxW) {
 }
 
 const TOAST_STYLE = {
-  error: { bg: 'rgba(120,10,40,0.88)', border: '#ff4d6d', icon: '⚠' },
-  warn: { bg: 'rgba(120,60,0,0.88)', border: '#ffb020', icon: '🔥' },
-  success: { bg: 'rgba(10,90,50,0.88)', border: '#3dff9b', icon: '✦' },
-  info: { bg: 'rgba(30,20,80,0.85)', border: '#8b7dff', icon: '♪' },
+  error: { bg: 'rgba(30,8,10,0.92)', border: C.danger, icon: '✕' },
+  warn: { bg: 'rgba(32,20,8,0.92)', border: C.gold, icon: '!' },
+  success: { bg: 'rgba(16,24,12,0.92)', border: C.ok, icon: '✦' },
+  info: { bg: C.surface, border: C.line, icon: '♪' },
 };
 
 // Подсказки внизу экрана. Одинаковый текст не дублируется, а продлевается.
@@ -89,13 +92,15 @@ export class Toaster {
       const w = Math.max(...lines.map(l => ctx.measureText(l).width)) + size * 1.6;
       const h = lines.length * size * 1.3 + size * 0.9;
       ctx.globalAlpha = Math.min(1, t.life * 3);
-      roundRect(ctx, (W - w) / 2, y - h, w, h, size * 0.7);
+      roundRect(ctx, (W - w) / 2, y - h, w, h, 8);
       ctx.fillStyle = st.bg;
       ctx.fill();
       ctx.strokeStyle = st.border;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1;
       ctx.stroke();
-      ctx.fillStyle = '#fff';
+      ctx.fillStyle = st.border === C.line ? C.gold : st.border;
+      ctx.fillRect((W - w) / 2, y - h + 8, 2, h - 16);
+      ctx.fillStyle = C.cream;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       lines.forEach((l, i) => ctx.fillText(l, W / 2, y - h + size * 0.45 + size * 1.3 * (i + 0.5)));
@@ -116,7 +121,7 @@ addEventListener('pointerup', e => {
 });
 
 export class DwellButton {
-  constructor(text, onFire, { hold = 1.1, color = '#8b7dff' } = {}) {
+  constructor(text, onFire, { hold = 1.1, color = C.gold } = {}) {
     this.text = text;
     this.onFire = onFire;
     this.hold = hold;
@@ -156,25 +161,24 @@ export class DwellButton {
     this.seen = performance.now();
     for (const b of visible) if (performance.now() - b.seen > 300) visible.delete(b);
     const { x, y, w, h } = this.rect;
+    const r = Math.min(8, h / 4);
     ctx.save();
-    roundRect(ctx, x, y, w, h, h / 2);
-    ctx.fillStyle = this.hover ? 'rgba(60,40,140,0.9)' : 'rgba(20,12,50,0.8)';
+    roundRect(ctx, x, y, w, h, r);
+    ctx.fillStyle = this.hover ? C.surfaceHi : C.surface;
     ctx.fill();
     ctx.save();
     ctx.clip();
-    ctx.fillStyle = this.color;
-    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = C.gold;
+    ctx.globalAlpha = 0.2;
     ctx.fillRect(x, y, w * this.progress, h);
+    ctx.globalAlpha = 0.9;
+    ctx.fillRect(x, y + h - 2, w * this.progress, 2);
     ctx.restore();
-    ctx.strokeStyle = this.color;
-    ctx.lineWidth = this.hover ? 4 : 2;
-    if (this.hover) {
-      ctx.shadowColor = this.color;
-      ctx.shadowBlur = 20;
-    }
-    roundRect(ctx, x, y, w, h, h / 2);
+    ctx.strokeStyle = this.hover ? C.gold : C.line;
+    ctx.lineWidth = this.hover ? 1.6 : 1;
+    roundRect(ctx, x + 0.5, y + 0.5, w - 1, h - 1, r);
     ctx.stroke();
     ctx.restore();
-    label(ctx, this.text, x + w / 2, y + h / 2, { size: h * 0.36, outline: false });
+    label(ctx, this.text, x + w / 2, y + h / 2, { size: h * 0.38, weight: 600, outline: false, title: true });
   }
 }
