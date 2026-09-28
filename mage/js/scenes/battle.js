@@ -1,8 +1,9 @@
 // Битва: волны жынов, босс Айдаһар, щит кулаком и взрыв маны ладонью.
+import { C, drawGem, drawIcon } from '../theme.js';
 import { POSE } from '../gestures.js';
 import { RUNES, RUNE_IDS, recognize } from '../runes.js';
 import { FRAMING_HINTS } from '../input.js';
-import { label, roundRect } from '../ui.js';
+import { drawRune, label, roundRect } from '../ui.js';
 import { drawBoss, drawCore, drawFireball, drawManaOrb, drawSpirit } from '../sprites.js';
 
 const WAVES = [
@@ -100,7 +101,7 @@ export class BattleScene {
     this.hearts--;
     this.combo = 0;
     this.app.sfx.hurt();
-    this.app.fx.flash('#ff1f4b', 0.35);
+    this.app.fx.flash(C.danger, 0.35);
     this.app.fx.shake(16, 0.35);
     if (this.hearts <= 0) this.finish(false);
   }
@@ -160,10 +161,10 @@ export class BattleScene {
 
   killBoss() {
     const b = this.boss;
-    this.app.fx.burst(b.x, b.y, '#ffd166', 120, 700, 1.4);
-    this.app.fx.burst(b.x, b.y, '#ff5a36', 80, 500, 1.2);
+    this.app.fx.burst(b.x, b.y, C.amber, 120, 700, 1.4);
+    this.app.fx.burst(b.x, b.y, C.danger, 80, 500, 1.2);
     this.app.fx.shake(25, 0.8);
-    this.app.fx.flash('#fff3c4', 0.6);
+    this.app.fx.flash(C.ivory, 0.6);
     this.app.sfx.boom();
     this.score += 1000;
     this.boss = null;
@@ -175,9 +176,9 @@ export class BattleScene {
   ult() {
     const { fx, sfx } = this.app;
     sfx.boom();
-    fx.flash('#ffd166', 0.6);
+    fx.flash(C.amber, 0.6);
     fx.shake(24, 0.6);
-    fx.ring(this.core.x, this.core.y, '#ffd166', Math.max(this.app.W, this.app.H), 0.8);
+    fx.ring(this.core.x, this.core.y, C.amber, Math.max(this.app.W, this.app.H), 0.8);
     for (const m of [...this.monsters]) this.kill(m, 60);
     this.shots = [];
     if (this.boss) {
@@ -281,7 +282,7 @@ export class BattleScene {
       m.hitFlash -= dt;
       if (d < this.coreR) {
         this.monsters = this.monsters.filter(o => o !== m);
-        fx.burst(m.x, m.y, '#ff3355', 30, 300);
+        fx.burst(m.x, m.y, C.danger, 30, 300);
         this.damage();
         continue;
       }
@@ -299,10 +300,10 @@ export class BattleScene {
         this.score += 50;
         this.gainMana(10);
         sfx.block();
-        fx.ring(core.x, core.y, '#c77dff', this.coreR * 3);
-        fx.text(core.x, core.y - this.coreR * 1.8, 'Блок! +50', '#c77dff');
+        fx.ring(core.x, core.y, C.teal, this.coreR * 3);
+        fx.text(core.x, core.y - this.coreR * 1.8, 'Блок! +50', C.teal);
       } else {
-        fx.burst(core.x, core.y, '#ff9f1a', 50, 400);
+        fx.burst(core.x, core.y, C.amber, 50, 400);
         this.damage();
       }
     }
@@ -362,7 +363,7 @@ export class BattleScene {
       const x = s.x0 + (core.x - s.x0) * s.t;
       const y = s.y0 + (core.y - s.y0) * s.t;
       drawFireball(ctx, x, y, minDim * 0.025, time);
-      if (Math.random() < 0.6) this.app.fx.sparkle(x, y, '#ff9f1a');
+      if (Math.random() < 0.6) this.app.fx.sparkle(x, y, C.amber);
     }
 
     if (input.present && this.charge > 0) drawManaOrb(ctx, input.palm.x, input.palm.y, this.charge, minDim, time);
@@ -370,32 +371,58 @@ export class BattleScene {
 
   renderOverlay(ctx) {
     const { W, H, minDim } = this.app;
-    const s = Math.max(16, minDim * 0.035);
+    const s = Math.max(15, minDim * 0.03);
 
-    // сердца
-    for (let i = 0; i < HEARTS; i++) label(ctx, i < this.hearts ? '❤' : '♡', 20 + s * 0.6 + i * s * 1.3, 20 + s * 0.6, { size: s, color: i < this.hearts ? '#ff4d6d' : 'rgba(255,255,255,0.4)', align: 'center' });
-    label(ctx, `${this.score}`, W - 20, 20 + s * 0.6, { size: s * 1.2, weight: 800, align: 'right' });
-    if (this.combo > 1) label(ctx, `комбо ×${this.combo}`, W - 20, 20 + s * 1.9, { size: s * 0.7, color: '#ffd166', align: 'right' });
-    label(ctx, this.wave?.title ?? '', W / 2, 20 + s * 0.6, { size: s * 0.8, color: '#cfc4ff' });
+    // прочность печати
+    label(ctx, 'ПЕЧАТЬ', 20, 22, { size: s * 0.5, weight: 700, color: C.muted, align: 'left', outline: false });
+    for (let i = 0; i < HEARTS; i++) drawGem(ctx, 26 + i * s * 1.05, 22 + s * 0.95, s * 0.42, i < this.hearts, this.hearts <= 2 ? C.danger : C.teal);
 
-    // мана
-    const bw = Math.min(260, W * 0.35), bh = s * 0.55;
-    const bx = 20, by = 20 + s * 1.6;
-    roundRect(ctx, bx, by, bw, bh, bh / 2);
-    ctx.fillStyle = 'rgba(15,8,40,0.8)';
-    ctx.fill();
-    roundRect(ctx, bx, by, Math.max(bh, (bw * this.mana) / 100), bh, bh / 2);
-    ctx.fillStyle = this.mana >= 100 ? '#ffd166' : '#8b7dff';
-    ctx.fill();
-    label(ctx, this.mana >= 100 ? '🖐 Взрыв готов' : 'Мана', bx + bw / 2, by + bh / 2, { size: bh * 0.75, outline: false });
+    // сила для взрыва
+    const bw = Math.min(200, W * 0.3), bh = 4;
+    const bx = 20, by = 22 + s * 1.9;
+    ctx.fillStyle = 'rgba(239,230,210,0.12)';
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.fillStyle = this.mana >= 100 ? C.amber : C.gold;
+    ctx.fillRect(bx, by, (bw * this.mana) / 100, bh);
+    label(ctx, this.mana >= 100 ? 'Сила собрана — раскрой ладонь' : 'Сила', bx, by + 14, { size: s * 0.5, weight: 600, color: this.mana >= 100 ? C.amber : C.muted, align: 'left', outline: false });
+
+    label(ctx, `${this.score}`, W - 20, 20 + s * 0.6, { size: s * 1.2, weight: 700, align: 'right' });
+    if (this.combo > 1) label(ctx, `серия ×${this.combo}`, W - 20, 20 + s * 1.7, { size: s * 0.6, color: C.amber, align: 'right', outline: false });
+    label(ctx, (this.wave?.title ?? '').toUpperCase(), W / 2, 24, { size: s * 0.55, weight: 700, color: C.gold, outline: false });
+
+    this.drawLegend(ctx, s);
 
     if (this.phase === 'intro') {
       const k = Math.min(1, (2.4 - this.phaseT) * 3, this.phaseT * 3);
       ctx.save();
       ctx.globalAlpha = Math.max(0, k);
-      label(ctx, this.wave.title, W / 2, H * 0.4, { size: minDim * 0.1, weight: 800, color: this.wave.boss ? '#ff8a3d' : '#f3e8ff' });
-      label(ctx, this.wave.sub, W / 2, H * 0.4 + minDim * 0.08, { size: minDim * 0.035, color: '#cfc4ff' });
+      label(ctx, this.wave.title, W / 2, H * 0.4, { size: minDim * 0.1, weight: 700, title: true, color: this.wave.boss ? C.amber : C.ivory });
+      label(ctx, this.wave.sub, W / 2, H * 0.4 + minDim * 0.08, { size: minDim * 0.035, color: C.muted });
       ctx.restore();
     }
+  }
+
+  // Подсказка заклинаний: всегда видно, какой жест что делает.
+  drawLegend(ctx, s) {
+    const { W, H } = this.app;
+    const rows = [
+      ...RUNE_IDS.map(id => ({ rune: id, text: `${RUNES[id].name} — ${RUNES[id].spell.toLowerCase()}` })),
+      { icon: 'fist', text: 'Кулак — щит' },
+      { icon: 'palm', text: 'Ладонь, толчок — взрыв' },
+    ];
+    const rh = s * 1.15, w = s * 9.5, h = rows.length * rh + 14;
+    const x = W - w - 16, y = H - h - 16;
+    roundRect(ctx, x, y, w, h, 8);
+    ctx.fillStyle = C.surface;
+    ctx.fill();
+    ctx.strokeStyle = C.line;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    rows.forEach((r, i) => {
+      const cy = y + 7 + rh * (i + 0.5);
+      if (r.rune) drawRune(ctx, r.rune, x + 18, cy, s * 0.62, { width: 1.8, glow: false });
+      else drawIcon(ctx, r.icon, x + 18, cy, s * 0.8, C.ivory, 1.8);
+      label(ctx, r.text, x + 36, cy, { size: s * 0.55, weight: 500, align: 'left', outline: false });
+    });
   }
 }

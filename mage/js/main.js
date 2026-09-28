@@ -1,9 +1,11 @@
 // Точка входа: камера → MediaPipe → поза руки → события → сцена → отрисовка.
-import { classifyHand, POSE } from './gestures.js';
+import { classifyHand, POSE, POSE_NAMES } from './gestures.js';
 import { Input } from './input.js';
 import { Effects } from './effects.js';
 import { Sfx } from './audio.js';
-import { Toaster, StrokeFeedback, drawHand, drawTrail, POSE_COLORS } from './ui.js';
+import { Toaster, StrokeFeedback, drawHand, drawTrail, POSE_COLORS, roundRect, label } from './ui.js';
+import { Steppe } from './scenery.js';
+import { C, drawIcon } from './theme.js';
 import { DebugHand } from './debug.js';
 import { preload } from './loader.js';
 import { MenuScene } from './scenes/menu.js';
@@ -25,6 +27,8 @@ const app = {
   sfx: new Sfx(),
   toast: new Toaster(),
   feedback: new StrokeFeedback(),
+  steppe: new Steppe(),
+  pip: { x: 16, y: 0, w: 0, h: 0, k: 1 },
   scene: null,
   scenes: {},
   go(name, data) {
@@ -52,11 +56,16 @@ function resize() {
   const vw = video.videoWidth || 1280, vh = video.videoHeight || 720;
   const s = Math.max(app.W / vw, app.H / vh);
   view = { dw: vw * s, dh: vh * s, ox: (app.W - vw * s) / 2, oy: (app.H - vh * s) / 2 };
+  app.steppe.resize(app.W, app.H, dpr, { x: app.W / 2, y: app.H * 0.58 });
 }
 addEventListener('resize', resize);
 
 function buildObs(res) {
-  if (!res.landmarks?.length) return { present: false };
+  if (!res.landmarks?.length) {
+    rawHand = null;
+    return { present: false };
+  }
+  rawHand = res.landmarks[0];
   const lm = res.landmarks[0].map(p => ({ x: view.ox + (1 - p.x) * view.dw, y: view.oy + p.y * view.dh }));
   const hand = classifyHand(lm);
   const palmIds = [0, 5, 9, 13, 17];
@@ -68,26 +77,74 @@ function buildObs(res) {
   return { present: true, landmarks: lm, ...hand, tip: lm[8], palm, scale };
 }
 
-function drawBackground() {
-  const { W, H } = app;
+let rawHand = null; // точки руки в координатах кадра камеры (0..1)
+
+// Окно камеры в углу: видно, попадает ли рука в кадр. Если руки нет
+// или она у края — окно увеличивается.
+function drawCameraWindow(dt) {
+  const { W, H, input, pip } = app;
+  const want = !input.present || input.framing ? 1 : 0;
+  pip.k += (want - pip.k) * Math.min(1, dt * 4);
+  const vw = video.videoWidth || 16, vh = video.videoHeight || 9;
+  pip.w = Math.min(W * 0.2, 240) + (Math.min(W * 0.34, 420) - Math.min(W * 0.2, 240)) * pip.k;
+  pip.h = (pip.w * vh) / vw;
+  pip.x = 16;
+  pip.y = H - pip.h - 16;
+  const { x, y, w, h } = pip;
+  ctx.save();
+  roundRect(ctx, x, y, w, h, 8);
+  ctx.fillStyle = C.night;
+  ctx.fill();
+  ctx.clip();
   if (video.videoWidth) {
     ctx.save();
-    ctx.translate(W, 0);
+    ctx.translate(x + w, y);
     ctx.scale(-1, 1);
-    ctx.drawImage(video, view.ox, view.oy, view.dw, view.dh);
+    ctx.globalAlpha = 0.85;
+    ctx.drawImage(video, 0, 0, w, h);
     ctx.restore();
-    ctx.fillStyle = 'rgba(14,6,40,0.55)';
-    ctx.fillRect(0, 0, W, H);
-  } else {
-    ctx.fillStyle = '#120830';
-    ctx.fillRect(0, 0, W, H);
-  }
-  const g = ctx.createRadialGradient(W / 2, H / 2, app.minDim * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75);
-  g.addColorStop(0, 'rgba(0,0,0,0)');
-  g.addColorStop(1, 'rgba(10,0,30,0.75)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
+  } else label(ctx, 'камера (отладка)', x + w / 2, y + h / 2, { size: 12, color: C.muted, outline: false });
+  if (rawHand) drawHand(ctx, rawHand.map(p => ({ x: x + (1 - p.x) * w, y: y + p.y * h })), POSE_COLORS[input.pose]);
+  ctx.restore();
+  ctx.save();
+  ctx.strokeStyle = input.present ? C.line : C.danger;
+  ctx.lineWidth = 1;
+  roundRect(ctx, x + 0.5, y + 0.5, w - 1, h - 1, 8);
+  ctx.stroke();
+  ctx.restore();
+  const known = input.present && input.pose !== POSE.OTHER;
+  label(ctx, input.present ? POSE_NAMES[input.pose] : 'подними руку', x + 10, y + 13, { size: 12, weight: 700, color: known ? C.teal : input.present ? C.amber : C.danger, align: 'left' });
 }
+
+// Курсор руки на сцене: кольцо цвета позы и значок жеста рядом.
+const POSE_ICON = { [POSE.PALM]: 'palm', [POSE.FIST]: 'fist', [POSE.THUMB]: 'thumb' };
+function drawCursor() {
+  const { input, time } = app;
+  if (!input.present) return;
+  const color = POSE_COLORS[input.pose];
+  const p = input.pose === POSE.PALM || input.pose === POSE.FIST ? input.palm : input.tip;
+  ctx.save();
+  const halo = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 26);
+  halo.addColorStop(0, 'rgba(95,211,196,0.35)');
+  halo.addColorStop(1, 'rgba(95,211,196,0)');
+  ctx.fillStyle = halo;
+  ctx.fillRect(p.x - 26, p.y - 26, 52, 52);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, 10 + Math.sin(time * 5) * 1.5, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = C.ivory;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  const icon = POSE_ICON[input.pose];
+  if (icon) drawIcon(ctx, icon, p.x + 28, p.y - 22, 22, color);
+}
+
+// В отладке кадры идут и в скрытой вкладке (для автопроверки).
+const nextFrame = cb => (DEBUG && document.hidden ? setTimeout(() => cb(performance.now()), 16) : requestAnimationFrame(cb));
 
 let tracker = null;
 let debugHand = null;
@@ -95,7 +152,7 @@ let lastObs = { present: false };
 let last = performance.now();
 
 function frame(now) {
-  const dt = Math.min(0.05, (now - last) / 1000);
+  const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
   last = now;
   app.time += dt;
 
@@ -106,14 +163,15 @@ function frame(now) {
   }
   const events = app.input.update(lastObs, now, app.minDim);
   const { input, fx } = app;
-  if (input.present && input.pose === POSE.POINT) fx.sparkle(input.tip.x, input.tip.y, '#bff3ff');
+  if (input.present && input.pose === POSE.POINT) fx.sparkle(input.tip.x, input.tip.y, C.teal);
 
   app.scene.update(dt, now, events);
   fx.update(dt);
   app.toast.update(dt);
   app.feedback.update(dt);
+  app.steppe.update(dt);
 
-  drawBackground();
+  app.steppe.render(ctx, app.time);
   const shake = fx.offset();
   ctx.save();
   ctx.translate(shake.x, shake.y);
@@ -122,20 +180,14 @@ function frame(now) {
   fx.render(ctx);
   ctx.restore();
 
-  if (input.landmarks) drawHand(ctx, input.landmarks, POSE_COLORS[input.pose]);
   if (input.stroke) drawTrail(ctx, input.stroke.pts);
-  if (input.present && !input.landmarks) {
-    // режим отладки: показываем «кончик пальца»
-    ctx.fillStyle = POSE_COLORS[input.pose];
-    ctx.beginPath();
-    ctx.arc(input.tip.x, input.tip.y, 8, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  drawCursor();
   app.scene.renderOverlay?.(ctx);
-  app.toast.render(ctx, app.W, app.H, app.minDim);
+  drawCameraWindow(dt);
+  app.toast.render(ctx, app.W, app.H, app.minDim, { bottom: app.H - 16, maxWidth: app.W - 2 * (app.pip.w + 40) });
   fx.renderFlash(ctx, app.W, app.H);
 
-  requestAnimationFrame(frame);
+  if (!app.manual) nextFrame(frame);
 }
 
 // Движок и модель начинают качаться сразу при открытии страницы.
@@ -169,6 +221,7 @@ async function start() {
     resize();
     if (DEBUG) {
       debugHand = new DebugHand();
+      Object.assign(window, { debugHand, stepFrame: frame }); // пошаговая автопроверка
     } else {
       statusEl.textContent = ready ? 'Запускаю распознавание…' : 'Камера готова. Дожидаюсь загрузки модели…';
       const loaded = await preload(showProgress);
@@ -185,7 +238,7 @@ async function start() {
   }
   document.getElementById('start').hidden = true;
   app.go('menu');
-  requestAnimationFrame(frame);
+  nextFrame(frame);
 }
 
 resize();

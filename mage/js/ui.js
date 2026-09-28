@@ -2,10 +2,12 @@
 import { RUNES } from './runes.js';
 import { POSE } from './gestures.js';
 
-export const FONT = 'Rubik, sans-serif';
+import { C, BODY_FONT, TITLE_FONT } from './theme.js';
 
-export function font(ctx, size, weight = 600) {
-  ctx.font = `${weight} ${Math.round(size)}px ${FONT}`;
+export const FONT = BODY_FONT;
+
+export function font(ctx, size, weight = 600, family = FONT) {
+  ctx.font = `${weight} ${Math.round(size)}px ${family}`;
 }
 
 export function roundRect(ctx, x, y, w, h, r) {
@@ -18,13 +20,13 @@ export function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-export function label(ctx, str, x, y, { size = 24, color = '#fff', weight = 700, align = 'center', outline = true } = {}) {
-  font(ctx, size, weight);
+export function label(ctx, str, x, y, { size = 24, color = C.ivory, weight = 700, align = 'center', outline = true, title = false } = {}) {
+  font(ctx, size, weight, title ? TITLE_FONT : FONT);
   ctx.textAlign = align;
   ctx.textBaseline = 'middle';
   if (outline) {
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = 'rgba(8,4,24,0.75)';
+    ctx.strokeStyle = 'rgba(4,8,9,0.8)';
     ctx.lineWidth = Math.max(3, size / 6);
     ctx.strokeText(str, x, y);
   }
@@ -77,12 +79,12 @@ const HAND_LINKS = [
 ];
 
 export const POSE_COLORS = {
-  [POSE.POINT]: '#9fe8ff',
-  [POSE.PALM]: '#ffd166',
-  [POSE.FIST]: '#c77dff',
-  [POSE.THUMB]: '#7dff9b',
-  [POSE.OTHER]: 'rgba(255,255,255,0.6)',
-  [POSE.NONE]: 'rgba(255,255,255,0.6)',
+  [POSE.POINT]: C.teal,
+  [POSE.PALM]: C.amber,
+  [POSE.FIST]: C.ivory,
+  [POSE.THUMB]: C.sage,
+  [POSE.OTHER]: 'rgba(239,230,210,0.55)',
+  [POSE.NONE]: 'rgba(239,230,210,0.55)',
 };
 
 export function drawHand(ctx, lm, color) {
@@ -107,13 +109,13 @@ export function drawHand(ctx, lm, color) {
 }
 
 // Светящийся след пальца, пока рисуется руна.
-export function drawTrail(ctx, pts, color = '#bff3ff', alpha = 1) {
+export function drawTrail(ctx, pts, color = C.teal, alpha = 1) {
   if (pts.length < 2) return;
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  for (const [w, a, c] of [[18, 0.15, color], [8, 0.5, color], [3, 1, '#ffffff']]) {
+  for (const [w, a, c] of [[16, 0.12, color], [7, 0.45, color], [2.5, 1, C.ivory]]) {
     ctx.globalAlpha = a * alpha;
     ctx.strokeStyle = c;
     ctx.lineWidth = w;
@@ -141,10 +143,10 @@ function wrap(ctx, text, maxW) {
 }
 
 const TOAST_STYLE = {
-  error: { bg: 'rgba(120,10,40,0.88)', border: '#ff4d6d', icon: '⚠' },
-  warn: { bg: 'rgba(120,60,0,0.88)', border: '#ffb020', icon: '🔥' },
-  success: { bg: 'rgba(10,90,50,0.88)', border: '#3dff9b', icon: '✦' },
-  info: { bg: 'rgba(30,20,80,0.85)', border: '#8b7dff', icon: '☝' },
+  error: { bg: 'rgba(24,12,10,0.92)', border: C.danger, icon: '✕' },
+  warn: { bg: 'rgba(26,18,8,0.92)', border: C.amber, icon: '!' },
+  success: { bg: 'rgba(10,22,20,0.92)', border: C.teal, icon: '✦' },
+  info: { bg: C.surface, border: C.line, icon: '·' },
 };
 
 // Подсказки внизу экрана. Одинаковый текст не дублируется, а продлевается.
@@ -172,24 +174,26 @@ export class Toaster {
     this.items = this.items.filter(t => t.life > 0);
   }
 
-  render(ctx, W, H, minDim) {
-    const size = Math.max(15, Math.min(26, minDim * 0.032));
-    let y = H - size * 2.2;
+  render(ctx, W, H, minDim, { bottom = H - 16, maxWidth = 900 } = {}) {
+    const size = Math.max(14, Math.min(22, minDim * 0.028));
+    let y = bottom;
     ctx.save();
     for (const t of this.items) {
       const st = TOAST_STYLE[t.kind] ?? TOAST_STYLE.info;
       font(ctx, size, 600);
-      const lines = wrap(ctx, `${st.icon}  ${t.text}`, Math.min(W - 48, 900));
+      const lines = wrap(ctx, `${st.icon}  ${t.text}`, Math.min(W - 48, maxWidth));
       const w = Math.max(...lines.map(l => ctx.measureText(l).width)) + size * 1.6;
       const h = lines.length * size * 1.3 + size * 0.9;
       ctx.globalAlpha = Math.min(1, t.life * 3);
-      roundRect(ctx, (W - w) / 2, y - h, w, h, size * 0.7);
+      roundRect(ctx, (W - w) / 2, y - h, w, h, 8);
       ctx.fillStyle = st.bg;
       ctx.fill();
       ctx.strokeStyle = st.border;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1;
       ctx.stroke();
-      ctx.fillStyle = '#fff';
+      ctx.fillStyle = st.border === C.line ? C.ivory : st.border;
+      ctx.fillRect((W - w) / 2, y - h + 8, 2, h - 16);
+      ctx.fillStyle = C.ivory;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       lines.forEach((l, i) => ctx.fillText(l, W / 2, y - h + size * 0.45 + size * 1.3 * (i + 0.5)));
@@ -200,8 +204,17 @@ export class Toaster {
 }
 
 // Кнопка без мыши: наведи указательный палец и подержи.
+// Кнопки, видимые сейчас на экране: по ним работает запасной клик мышью или касание.
+const visible = new Set();
+addEventListener('pointerup', e => {
+  for (const b of visible) {
+    const r = b.rect;
+    if (e.clientX > r.x && e.clientX < r.x + r.w && e.clientY > r.y && e.clientY < r.y + r.h) b.clicked = true;
+  }
+});
+
 export class DwellButton {
-  constructor(text, onFire, { hold = 1.1, color = '#8b7dff' } = {}) {
+  constructor(text, onFire, { hold = 1.1, color = C.gold } = {}) {
     this.text = text;
     this.onFire = onFire;
     this.hold = hold;
@@ -217,7 +230,13 @@ export class DwellButton {
 
   update(dt, tip, sfx) {
     const r = this.rect;
-    this.hover = !!tip && tip.x > r.x && tip.x < r.x + r.w && tip.y > r.y && tip.y < r.y + r.h;
+    const pad = 24; // запас: рука немного дрожит
+    this.hover = !!tip && tip.x > r.x - pad && tip.x < r.x + r.w + pad && tip.y > r.y - pad && tip.y < r.y + r.h + pad;
+    if (this.clicked) {
+      this.clicked = false;
+      this.onFire();
+      return true;
+    }
     if (this.hover) {
       if (this.progress === 0) sfx?.click();
       this.progress += dt / this.hold;
@@ -226,32 +245,34 @@ export class DwellButton {
         this.onFire();
         return true;
       }
-    } else this.progress = Math.max(0, this.progress - dt * 2);
+    } else this.progress = Math.max(0, this.progress - dt * 0.7);
     return false;
   }
 
   render(ctx) {
+    visible.add(this);
+    this.seen = performance.now();
+    for (const b of visible) if (performance.now() - b.seen > 300) visible.delete(b);
     const { x, y, w, h } = this.rect;
+    const r = Math.min(10, h / 4);
     ctx.save();
-    roundRect(ctx, x, y, w, h, h / 2);
-    ctx.fillStyle = this.hover ? 'rgba(60,40,140,0.9)' : 'rgba(20,12,50,0.8)';
+    roundRect(ctx, x, y, w, h, r);
+    ctx.fillStyle = this.hover ? C.surfaceHi : C.surface;
     ctx.fill();
     ctx.save();
     ctx.clip();
     ctx.fillStyle = this.color;
-    ctx.globalAlpha = 0.55;
+    ctx.globalAlpha = 0.22;
     ctx.fillRect(x, y, w * this.progress, h);
+    ctx.globalAlpha = 0.9;
+    ctx.fillRect(x, y + h - 2, w * this.progress, 2);
     ctx.restore();
-    ctx.strokeStyle = this.color;
-    ctx.lineWidth = this.hover ? 4 : 2;
-    if (this.hover) {
-      ctx.shadowColor = this.color;
-      ctx.shadowBlur = 20;
-    }
-    roundRect(ctx, x, y, w, h, h / 2);
+    ctx.strokeStyle = this.hover ? this.color : C.line;
+    ctx.lineWidth = this.hover ? 1.6 : 1;
+    roundRect(ctx, x + 0.5, y + 0.5, w - 1, h - 1, r);
     ctx.stroke();
     ctx.restore();
-    label(ctx, this.text, x + w / 2, y + h / 2, { size: h * 0.36, outline: false });
+    label(ctx, this.text, x + w / 2, y + h / 2, { size: h * 0.42, weight: 600, outline: false, title: true });
   }
 }
 
@@ -291,12 +312,12 @@ export class StrokeFeedback {
       const { f } = it;
       ctx.save();
       ctx.globalAlpha = a;
-      if (it.target) drawRune(ctx, it.target, f.bbox.cx, f.bbox.cy, Math.max(f.size, 80), { color: '#ffffff', alpha: 0.5, width: 3, dash: [10, 10], glow: false });
-      ctx.strokeStyle = '#ff4d6d';
+      if (it.target) drawRune(ctx, it.target, f.bbox.cx, f.bbox.cy, Math.max(f.size, 80), { color: C.ivory, alpha: 0.55, width: 2.5, dash: [8, 10], glow: false });
+      ctx.strokeStyle = C.danger;
       ctx.lineWidth = 5;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      ctx.shadowColor = '#ff4d6d';
+      ctx.shadowColor = C.danger;
       ctx.shadowBlur = 12;
       ctx.beginPath();
       f.pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
@@ -306,7 +327,7 @@ export class StrokeFeedback {
       for (const m of it.marks) {
         if (m.type === 'gap') {
           ctx.setLineDash([8, 8]);
-          ctx.strokeStyle = '#ffd166';
+          ctx.strokeStyle = C.amber;
           ctx.lineWidth = 4;
           ctx.beginPath();
           ctx.moveTo(m.a.x, m.a.y);
@@ -318,21 +339,21 @@ export class StrokeFeedback {
             ctx.arc(p.x, p.y, 10 * pulse, 0, Math.PI * 2);
             ctx.stroke();
           }
-          label(ctx, 'разрыв', (m.a.x + m.b.x) / 2, (m.a.y + m.b.y) / 2 - 22, { size: 18, color: '#ffd166' });
+          label(ctx, 'разрыв', (m.a.x + m.b.x) / 2, (m.a.y + m.b.y) / 2 - 22, { size: 18, color: C.amber });
         } else if (m.type === 'corner') {
-          ctx.strokeStyle = '#ffd166';
+          ctx.strokeStyle = C.amber;
           ctx.lineWidth = 3;
           ctx.beginPath();
           ctx.arc(m.x, m.y, 16 * pulse, 0, Math.PI * 2);
           ctx.stroke();
         } else if (m.type === 'size') {
           ctx.setLineDash([6, 6]);
-          ctx.strokeStyle = '#ffd166';
+          ctx.strokeStyle = C.amber;
           ctx.lineWidth = 2;
           const s = Math.max(f.size * 2.5, 160);
           ctx.strokeRect(f.bbox.cx - s / 2, f.bbox.cy - s / 2, s, s);
           ctx.setLineDash([]);
-          label(ctx, 'нужно примерно так', f.bbox.cx, f.bbox.cy - s / 2 - 16, { size: 18, color: '#ffd166' });
+          label(ctx, 'нужно примерно так', f.bbox.cx, f.bbox.cy - s / 2 - 16, { size: 18, color: C.amber });
         }
       }
       ctx.restore();

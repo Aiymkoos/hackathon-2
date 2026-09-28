@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Сиқыршы — магия жестами</title>
-  <meta name="description" content="Игра, где магию колдуют жестами руки через веб-камеру">
+  <title>Сиқыршы — хранитель древней степи</title>
+  <meta name="description" content="Игра, где знаки чертят в воздухе рукой перед веб-камерой">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -15,20 +15,86 @@
   <canvas id="stage"></canvas>
 
   <div id="start" class="overlay">
-    <div class="card">
-      <h1>СИҚЫРШЫ</h1>
-      <p class="sub">Маг рун: защищайся от жынов жестами рук через веб-камеру</p>
-      <ul class="howto">
-        <li><span>☝</span> Указательный палец — рисуй руны в воздухе</li>
-        <li><span>✊</span> Кулак — щит от огня босса</li>
-        <li><span>🖐</span> Ладонь + толчок к камере — взрыв маны</li>
-        <li><span>👍</span> Большой палец вверх — старт</li>
+    <!-- Ночная степь: небо, луна, горы, каменный круг и знак, который загорается между камнями -->
+    <svg class="scene" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#04070a"/>
+          <stop offset="0.6" stop-color="#0a1719"/>
+          <stop offset="0.75" stop-color="#10272a"/>
+          <stop offset="1" stop-color="#050909"/>
+        </linearGradient>
+        <radialGradient id="halo">
+          <stop offset="0" stop-color="#efe6d2" stop-opacity="0.18"/>
+          <stop offset="1" stop-color="#efe6d2" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="glow">
+          <stop offset="0" stop-color="#5fd3c4" stop-opacity="0.35"/>
+          <stop offset="1" stop-color="#5fd3c4" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <rect width="1600" height="900" fill="url(#sky)"/>
+      <g fill="#efe6d2" class="stars">
+        <circle cx="120" cy="80" r="1"/><circle cx="310" cy="160" r="1.2"/><circle cx="520" cy="60" r="0.8"/>
+        <circle cx="700" cy="210" r="1"/><circle cx="860" cy="110" r="1.4"/><circle cx="980" cy="260" r="0.9"/>
+        <circle cx="1080" cy="70" r="1"/><circle cx="1420" cy="300" r="1.1"/><circle cx="1530" cy="90" r="0.9"/>
+        <circle cx="230" cy="330" r="0.8"/><circle cx="620" cy="360" r="1"/><circle cx="1200" cy="380" r="0.8"/>
+      </g>
+      <circle cx="1270" cy="170" r="210" fill="url(#halo)"/>
+      <circle cx="1270" cy="170" r="46" fill="#e9e0cb"/>
+      <g class="cloud" fill="#0a1316" opacity="0.8">
+        <ellipse cx="1210" cy="190" rx="120" ry="18"/><ellipse cx="1300" cy="200" rx="90" ry="14"/>
+      </g>
+      <path d="M0 560 L90 520 L170 540 L260 470 L340 510 L430 455 L520 500 L600 480 L690 430 L780 490 L860 470 L950 420 L1040 480 L1130 460 L1210 410 L1300 470 L1390 450 L1480 490 L1600 460 L1600 900 L0 900Z" fill="#0c1a1c"/>
+      <path d="M0 640 L120 612 L260 630 L400 600 L560 625 L720 598 L880 620 L1040 596 L1200 622 L1360 604 L1600 628 L1600 900 L0 900Z" fill="#091315"/>
+      <rect y="660" width="1600" height="240" fill="#060b0c"/>
+      <g fill="#0b1416" stroke="#7fd6c8" stroke-opacity="0.16">
+        <path d="M790 700 L800 590 Q830 565 855 588 L862 700Z"/>
+        <path d="M1040 715 L1046 610 Q1072 590 1092 612 L1100 715Z"/>
+        <path d="M1240 730 L1250 640 Q1270 622 1290 642 L1296 730Z"/>
+        <path d="M960 690 L966 620 Q984 604 1000 620 L1006 690Z"/>
+        <path d="M1150 700 L1154 628 Q1172 612 1188 628 L1192 700Z"/>
+        <path d="M700 725 L708 650 Q726 634 744 650 L750 725Z"/>
+      </g>
+      <circle cx="1030" cy="640" r="150" fill="url(#glow)"/>
+      <!-- знак между камнями: треугольник в двойном круге, прорисовывается и мерцает -->
+      <g class="sigil" fill="none" stroke="#5fd3c4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="1030" cy="640" r="62" pathLength="100"/>
+        <circle cx="1030" cy="640" r="44" pathLength="100" stroke="#c9a86a" stroke-width="1.2"/>
+        <path d="M1030 604 L1061 658 L999 658 Z" pathLength="100"/>
+      </g>
+      <g class="fog">
+        <ellipse cx="400" cy="700" rx="520" ry="40" fill="#8fb3ad" opacity="0.05"/>
+        <ellipse cx="1200" cy="740" rx="600" ry="50" fill="#8fb3ad" opacity="0.05"/>
+      </g>
+    </svg>
+
+    <main class="intro">
+      <p class="kicker">Игра жестами · веб-камера</p>
+      <h1>Сиқыршы</h1>
+      <p class="tagline">Начерти знак. Пробуди силу.</p>
+      <p class="lead">Жыны идут к древней печати. Черти в воздухе знаки, которые горят над ними, — и защити степь до рассвета.</p>
+
+      <ul class="gestures">
+        <li>
+          <svg viewBox="0 0 24 24"><path d="M22 14a8 8 0 0 1-8 8"/><path d="M18 11v-1a2 2 0 0 0-4 0"/><path d="M14 10V9a2 2 0 0 0-4 0v1"/><path d="M10 9.5V4a2 2 0 0 0-4 0v10"/><path d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+          <span>Палец — чертить знаки</span>
+        </li>
+        <li>
+          <svg viewBox="0 0 24 24"><path d="M18 11.5V9a2 2 0 0 0-4 0v1.4"/><path d="M14 10V8a2 2 0 0 0-4 0v2"/><path d="M10 9.9V9a2 2 0 0 0-4 0v5"/><path d="M6 14a2 2 0 0 0-4 0"/><path d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-4a8 8 0 0 1-8-8 2 2 0 1 1 4 0"/></svg>
+          <span>Кулак — щит</span>
+        </li>
+        <li>
+          <svg viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-4 0"/><path d="M14 10V4a2 2 0 0 0-4 0v2"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+          <span>Ладонь и толчок — взрыв</span>
+        </li>
       </ul>
+
+      <button id="startBtn">Начать испытание</button>
       <div class="progress"><div id="loadBar"></div></div>
-    <p class="load" id="loadText">Загружаю распознавание рук…</p>
-    <button id="startBtn">Включить камеру</button>
-      <p class="note" id="status">Видео обрабатывается прямо в браузере и никуда не отправляется.</p>
-    </div>
+      <p class="load" id="loadText">Загружаю распознавание рук…</p>
+      <p class="note" id="status">Видео с камеры обрабатывается прямо в браузере и никуда не отправляется.</p>
+    </main>
   </div>
 
   <script type="module" src="js/main.js"></script>

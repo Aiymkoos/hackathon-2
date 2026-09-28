@@ -24,10 +24,10 @@ export class MenuScene {
     const bw = Math.min(W - 40, minDim * 0.5);
     const bh = Math.max(52, minDim * 0.09);
     this.buttons.forEach((b, i) => b.place((W - bw) / 2, H * 0.5 + i * (bh + 16), bw, bh));
-    const tip = body?.rightOk ? body.pointer : null;
+    const tip = body?.pointer ?? null;
     for (const b of this.buttons) if (b.update(dt, tip, () => orchestra.blip(660))) return;
     if (conductor.framing && conductor.framing !== 'noRight') toast.show(FRAMING_HINTS[conductor.framing], 'info', 0.5);
-    else toast.show('Наведи правую руку на кнопку и подержи', 'info', 0.5);
+    else toast.show('Наведи руку на кнопку и подержи', 'info', 0.5);
   }
 
   render(ctx) {
