@@ -1,8 +1,6 @@
 // Обёртка над MediaPipe Hand Landmarker: камера → 21 точка руки.
-import { FilesetResolver, HandLandmarker } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/vision_bundle.mjs';
-
-const WASM = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm';
-const MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+// Движок и модель лежат в репозитории (vendor/, models/) и скачиваются заранее (loader.js).
+import { HandLandmarker } from '../vendor/mediapipe/vision_bundle.mjs';
 
 export async function startCamera(video) {
   const stream = await navigator.mediaDevices.getUserMedia({
@@ -14,10 +12,10 @@ export async function startCamera(video) {
   if (!video.videoWidth) await new Promise(r => video.addEventListener('loadedmetadata', r, { once: true }));
 }
 
-export async function createHandTracker() {
-  const fileset = await FilesetResolver.forVisionTasks(WASM);
+/** assets — результат preload(): { fileset, model }. */
+export async function createHandTracker({ fileset, model }) {
   const options = delegate => ({
-    baseOptions: { modelAssetPath: MODEL, delegate },
+    baseOptions: { modelAssetBuffer: model, delegate },
     runningMode: 'VIDEO',
     numHands: 1,
     minHandDetectionConfidence: 0.6,

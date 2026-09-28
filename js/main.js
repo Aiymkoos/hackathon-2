@@ -5,6 +5,7 @@ import { Effects } from './effects.js';
 import { Sfx } from './audio.js';
 import { Toaster, StrokeFeedback, drawHand, drawTrail, POSE_COLORS } from './ui.js';
 import { DebugHand } from './debug.js';
+import { preload } from './loader.js';
 import { MenuScene } from './scenes/menu.js';
 import { AcademyScene } from './scenes/academy.js';
 import { BattleScene } from './scenes/battle.js';
@@ -137,12 +138,29 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+// Движок и модель начинают качаться сразу при открытии страницы.
+const loadBar = document.getElementById('loadBar');
+const loadText = document.getElementById('loadText');
+let ready = false;
+const showProgress = p => {
+  loadBar.style.width = `${Math.round(p * 100)}%`;
+  if (!ready) loadText.textContent = `Загружаю распознавание рук: ${Math.round(p * 100)}%`;
+};
+const trackerModule = DEBUG ? null : import('./tracker.js');
+const assets = DEBUG ? null : preload(showProgress);
+assets?.then(() => {
+  ready = true;
+  loadText.textContent = 'Всё загружено — можно начинать';
+}, () => {
+  loadText.textContent = 'Не удалось загрузить модель. Проверь интернет и обнови страницу.';
+});
+
 async function start() {
   startBtn.disabled = true;
   app.sfx.unlock();
   try {
     statusEl.textContent = 'Запрашиваю доступ к камере…';
-    const { startCamera, createHandTracker } = await import('./tracker.js');
+    const { startCamera, createHandTracker } = DEBUG ? await import('./tracker.js') : await trackerModule;
     try {
       await startCamera(video);
     } catch (e) {
@@ -152,15 +170,17 @@ async function start() {
     if (DEBUG) {
       debugHand = new DebugHand();
     } else {
-      statusEl.textContent = 'Загружаю модель распознавания рук…';
-      tracker = await createHandTracker();
+      statusEl.textContent = ready ? 'Запускаю распознавание…' : 'Камера готова. Дожидаюсь загрузки модели…';
+      const loaded = await preload(showProgress);
+      statusEl.textContent = 'Запускаю распознавание…';
+      tracker = await createHandTracker(loaded);
     }
   } catch (e) {
     console.error(e);
     startBtn.disabled = false;
     statusEl.textContent = e.message === 'camera'
       ? 'Нет доступа к камере. Разреши камеру в адресной строке браузера и нажми кнопку ещё раз.'
-      : 'Не удалось загрузить модель. Проверь интернет и обнови страницу.';
+      : 'Не удалось загрузить модель. Проверь интернет и нажми кнопку ещё раз.';
     return;
   }
   document.getElementById('start').hidden = true;
@@ -170,5 +190,6 @@ async function start() {
 
 resize();
 startBtn.addEventListener('click', start);
+if (DEBUG) document.querySelector('.progress').hidden = true;
 if (DEBUG) window.app = app; // для проверки из консоли
 if (DEBUG) statusEl.textContent = 'Режим отладки: мышь — палец, F — кулак, P — ладонь, U — 👍, пробел — толчок.';
