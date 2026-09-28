@@ -19,6 +19,7 @@ const video = document.getElementById('video');
 const startBtn = document.getElementById('startBtn');
 const statusEl = document.getElementById('status');
 const DEBUG = new URLSearchParams(location.search).has('debug');
+const DIAGNOSTICS = new URLSearchParams(location.search).has('diagnostics');
 
 const app = {
   W: 0, H: 0, minDim: 0, time: 0,
@@ -34,6 +35,8 @@ const app = {
   scene: null,
   scenes: {},
   go(name, data) {
+    for (const h of Object.values(this.hands)) h.cancelStroke();
+    this.feedback.clear();
     this.scene = this.scenes[name];
     this.scene.enter?.(data);
   },
@@ -49,7 +52,8 @@ app.scenes = {
 // Видео растягивается «с обрезкой» на весь экран и отражается как зеркало.
 let view = { ox: 0, oy: 0, dw: 1, dh: 1 };
 function resize() {
-  const dpr = Math.min(2, devicePixelRatio || 1);
+  for (const h of Object.values(app.hands)) h.cancelStroke();
+  const dpr = Math.min(1.5, devicePixelRatio || 1);
   app.W = innerWidth;
   app.H = innerHeight;
   app.minDim = Math.min(app.W, app.H);
@@ -76,14 +80,39 @@ function handObs(norm, world) {
 }
 
 // Результат MediaPipe → наблюдение для каждой руки (Right / Left).
+// Руки различаем по положению на экране, а не по метке MediaPipe «левая/правая»:
+// она иногда перескакивает, и линия обрывалась бы посреди руны.
+// Каждая рука держит свой «слот», пока её видно рядом с прежним местом.
+const lastPos = { Right: null, Left: null };
+const gap = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+function assignHands(hands, now) {
+  const recent = k => lastPos[k] && now - lastPos[k].t < 400;
+  let keys;
+  if (hands.length === 1) {
+    const p = hands[0].palm;
+    const near = ['Right', 'Left'].filter(recent).sort((a, b) => gap(lastPos[a], p) - gap(lastPos[b], p))[0];
+    keys = [near ?? (p.x < app.W / 2 ? 'Left' : 'Right')];
+  } else {
+    const [a, b] = hands;
+    if (recent('Left') && recent('Right')) {
+      const keep = gap(lastPos.Left, a.palm) + gap(lastPos.Right, b.palm);
+      const swap = gap(lastPos.Right, a.palm) + gap(lastPos.Left, b.palm);
+      keys = keep <= swap ? ['Left', 'Right'] : ['Right', 'Left'];
+    } else keys = a.palm.x <= b.palm.x ? ['Left', 'Right'] : ['Right', 'Left'];
+  }
+  hands.forEach((h, i) => { lastPos[keys[i]] = { x: h.palm.x, y: h.palm.y, t: now }; });
+  return keys;
+}
+
 function buildObs(res) {
   const out = { Right: { present: false }, Left: { present: false } };
   rawHands = {};
-  (res.landmarks ?? []).forEach((norm, i) => {
-    let key = res.handedness?.[i]?.[0]?.categoryName === 'Left' ? 'Left' : 'Right';
-    if (out[key].present) key = key === 'Right' ? 'Left' : 'Right'; // обе «правые» — разводим
-    out[key] = handObs(norm, res.worldLandmarks?.[i] ?? null);
-    rawHands[key] = norm;
+  const list = (res.landmarks ?? []).slice(0, 2);
+  const hands = list.map((norm, i) => ({ ...handObs(norm, res.worldLandmarks?.[i] ?? null), sampleId: res.sampleId }));
+  const keys = assignHands(hands, performance.now());
+  hands.forEach((h, i) => {
+    out[keys[i]] = h;
+    rawHands[keys[i]] = list[i];
   });
   return out;
 }
@@ -106,7 +135,7 @@ function drawCameraWindow(dt) {
   const want = !input.present || input.framing ? 1 : 0;
   pip.k += (want - pip.k) * Math.min(1, dt * 4);
   const vw = video.videoWidth || 16, vh = video.videoHeight || 9;
-  pip.w = Math.min(W * 0.2, 240) + (Math.min(W * 0.34, 420) - Math.min(W * 0.2, 240)) * pip.k;
+  pip.w = W < 700 ? 128 + 42 * pip.k : Math.min(W * 0.2, 220) + (Math.min(W * 0.32, 360) - Math.min(W * 0.2, 220)) * pip.k;
   pip.h = (pip.w * vh) / vw;
   pip.x = 16;
   pip.y = H - pip.h - 16;
@@ -133,7 +162,7 @@ function drawCameraWindow(dt) {
   ctx.stroke();
   ctx.restore();
   const known = input.present && input.pose !== POSE.OTHER;
-  const DRAW = { arming: 'замри на миг — и рисуй', drawing: 'рисую — руна сработает сама', checking: 'проверяю · сдвинь палец для новой руны' };
+  const DRAW = { arming: 'готовлю перо · замри на миг', drawing: 'рисую · остановись, чтобы применить', checking: 'принято · перемести палец и замри' };
   const text = input.pose === POSE.POINT && DRAW[input.drawState] ? DRAW[input.drawState] : POSE_NAMES[input.pose];
   label(ctx, input.present ? text : 'подними руку', x + 10, y + 13, { size: 12, weight: 700, color: known ? C.teal : input.present ? C.amber : C.danger, align: 'left' });
 }
@@ -158,6 +187,13 @@ function drawCursor(input) {
   ctx.arc(p.x, p.y, 10 + Math.sin(time * 5) * 1.5, 0, Math.PI * 2);
   ctx.stroke();
   ctx.setLineDash([]);
+  if (input.drawState === 'arming') {
+    ctx.strokeStyle = C.gold;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 17, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * input.armingProgress);
+    ctx.stroke();
+  }
   ctx.fillStyle = C.ivory;
   ctx.beginPath();
   ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
@@ -174,23 +210,44 @@ let tracker = null;
 let debugHand = null;
 let lastObs = { Right: { present: false }, Left: { present: false } };
 let last = performance.now();
+let sampleAt = -Infinity;
+let wasHidden = false;
 
 function frame(now) {
   const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
   last = now;
   app.time += dt;
 
-  if (debugHand) lastObs = { Right: debugHand.obs(now), Left: { present: false } };
-  else if (tracker) {
+  if (document.hidden && !DEBUG) {
+    wasHidden = true;
+    nextFrame(frame);
+    return;
+  }
+  if (wasHidden) {
+    for (const h of Object.values(app.hands)) { h.cancelStroke(); h.present = false; }
+    sampleAt = -Infinity;
+    wasHidden = false;
+  }
+  let fresh = false;
+  if (debugHand) {
+    lastObs = { Right: { ...debugHand.obs(now), sampleId: now }, Left: { present: false } };
+    fresh = true;
+    sampleAt = now;
+  } else if (tracker) {
     const res = tracker.detect(video, now);
-    if (res) lastObs = buildObs(res);
+    if (res && now - res.sampleId < 350) {
+      lastObs = buildObs(res);
+      fresh = true;
+      sampleAt = now;
+    }
   }
   // Сцена может сразу засчитать руну, как только она нарисована (earlyCheck).
   const early = app.scene.earlyCheck?.bind(app.scene) ?? null;
   const events = [];
   for (const [key, inp] of Object.entries(app.hands)) {
     inp.earlyCheck = early;
-    for (const e of inp.update(lastObs[key], now, app.minDim)) events.push({ ...e, hand: key });
+    const obs = fresh ? lastObs[key] : now - sampleAt > 350 ? { present: false } : null;
+    if (obs) for (const e of inp.update(obs, now, app.minDim)) events.push({ ...e, hand: key });
   }
   app.input = pickPrimary();
   const { input, fx } = app;
@@ -216,9 +273,11 @@ function frame(now) {
     drawCursor(h);
   }
   app.scene.renderOverlay?.(ctx);
+  if (tracker?.metrics.error) app.toast.show('Распознавание остановилось. Обнови страницу и разреши камеру', 'error', 1);
   drawCameraWindow(dt);
-  app.toast.render(ctx, app.W, app.H, app.minDim, { bottom: app.H - 16, maxWidth: app.W - 2 * (app.pip.w + 40) });
+  app.toast.render(ctx, app.W, app.H, app.minDim, { bottom: app.W < 700 ? app.pip.y - 12 : app.H - 16, maxWidth: app.W < 700 ? app.W - 40 : Math.max(240, app.W - 2 * (app.pip.w + 40)) });
   fx.renderFlash(ctx, app.W, app.H);
+  if (DIAGNOSTICS && tracker) label(ctx, `${tracker.metrics.mode} · ${Math.round(tracker.metrics.inferenceMs)} ms · ${tracker.metrics.samples} кадров`, app.W / 2, app.H - 8, { size: 12, color: C.gold });
 
   if (!app.manual) nextFrame(frame);
 }
@@ -245,11 +304,11 @@ async function start() {
   app.sfx.unlock();
   try {
     statusEl.textContent = 'Запрашиваю доступ к камере…';
-    const { startCamera, createHandTracker } = DEBUG ? await import('./tracker.js') : await trackerModule;
-    try {
-      await startCamera(video);
-    } catch (e) {
-      if (!DEBUG) throw new Error('camera');
+    let createHandTracker;
+    if (!DEBUG) {
+      const module = await trackerModule;
+      createHandTracker = module.createHandTracker;
+      try { await module.startCamera(video); } catch (e) { throw new Error('camera'); }
     }
     resize();
     if (DEBUG) {
@@ -266,7 +325,8 @@ async function start() {
     startBtn.disabled = false;
     statusEl.textContent = e.message === 'camera'
       ? 'Нет доступа к камере. Разреши камеру в адресной строке браузера и нажми кнопку ещё раз.'
-      : 'Не удалось загрузить модель. Проверь интернет и нажми кнопку ещё раз.';
+      : 'Не удалось запустить распознавание. Проверь интернет и нажми кнопку ещё раз.';
+    video.srcObject?.getTracks().forEach(track => track.stop());
     return;
   }
   document.getElementById('start').hidden = true;
@@ -278,4 +338,8 @@ resize();
 startBtn.addEventListener('click', start);
 if (DEBUG) document.querySelector('.progress').hidden = true;
 if (DEBUG) window.app = app; // для проверки из консоли
-if (DEBUG) statusEl.textContent = 'Режим отладки: мышь — палец, F — кулак, P — ладонь, U — 👍, пробел — толчок.';
+if (DEBUG) {
+  loadText.textContent = 'Тестовый режим без камеры';
+  statusEl.textContent = 'ТЕСТ: зажми мышь — перо, F — щит, P — заряд, U — старт. Это не проверка камеры.';
+}
+addEventListener('pagehide', () => { tracker?.close(); video.srcObject?.getTracks().forEach(t => t.stop()); });

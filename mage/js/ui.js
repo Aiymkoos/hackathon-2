@@ -34,6 +34,14 @@ export function label(ctx, str, x, y, { size = 24, color = C.ivory, weight = 700
   ctx.fillText(str, x, y);
 }
 
+// Wrapped body copy: readable on narrow screens without shrinking to tiny text.
+export function paragraph(ctx, text, x, y, maxWidth, { size = 15, color = C.ivory, align = 'center' } = {}) {
+  font(ctx, size, 500);
+  const lines = wrap(ctx, text, maxWidth);
+  lines.forEach((line, i) => label(ctx, line, x, y + i * size * 1.4, { size, color, align, weight: 500, outline: false }));
+  return lines.length * size * 1.4;
+}
+
 /**
  * Рисует руну по образцу. progress (0..1) — рисовать только часть пути;
  * возвращает точку конца нарисованной части (для анимации «пишущего» огонька).
@@ -208,6 +216,7 @@ export class Toaster {
 const visible = new Set();
 addEventListener('pointerup', e => {
   for (const b of visible) {
+    if (performance.now() - b.seen > 150) continue;
     const r = b.rect;
     if (e.clientX > r.x && e.clientX < r.x + r.w && e.clientY > r.y && e.clientY < r.y + r.h) b.clicked = true;
   }
@@ -230,7 +239,7 @@ export class DwellButton {
 
   update(dt, tip, sfx) {
     const r = this.rect;
-    const pad = 24; // запас: рука немного дрожит
+    const pad = Math.min(8, r.h * 0.1); // запас: рука немного дрожит
     this.hover = !!tip && tip.x > r.x - pad && tip.x < r.x + r.w + pad && tip.y > r.y - pad && tip.y < r.y + r.h + pad;
     if (this.clicked) {
       this.clicked = false;

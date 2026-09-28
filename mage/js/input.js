@@ -1,19 +1,16 @@
 // Превращает кадры с рукой в игровые события:
 //  stroke    — закончен штрих пальцем (руна)
 //  pose      — поза руки сменилась (после стабилизации)
-//  push      — ладонь резко толкнули к камере
-//  weakPush  — толчок был, но слишком слабый
+//  trackingLost — незавершённый штрих отменён без штрафа
 
 import { POSE } from './gestures.js';
 import { OneEuro } from './filters.js';
 
-const STABLE_FRAMES = 3;   // столько кадров подряд поза должна держаться
+const STABLE_FRAMES = 2;   // столько кадров подряд поза должна держаться
 const LOST_MS = 250;       // рука пропала дольше — считаем, что её нет
 const LOST_DRAW_MS = 500;  // …а во время рисования ждём дольше
-const STILL_MS = 600;      // палец замер на столько — штрих закончен (на углах рука замедляется, поэтому с запасом)
-const ARM_MS = 220;        // замри на столько — начнём рисовать
-const PUSH_RATIO = 1.3;    // во сколько раз должна вырасти ладонь при толчке
-const WEAK_RATIO = 1.12;
+const STILL_MS = 420;      // палец замер на столько — штрих закончен (на углах рука замедляется, поэтому с запасом)
+const ARM_MS = 140;        // замри на столько — начнём рисовать
 
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
@@ -34,24 +31,28 @@ export class Input {
     this.stroke = null;
     this.lostAt = 0;
     this.poseHist = [];
+    this.lastSample = -Infinity;
+    this.armingProgress = 0;
     this.waitMove = null;
-    this.scaleHist = [];
-    this.pushPeak = 1;
-    this.pushCooldown = 0;
   }
 
+  // Only fresh camera observations enter this method. A sample id makes the
+  // contract explicit and prevents render-rate-dependent pose recognition.
   update(obs, now, minDim) {
     const events = [];
+    if (obs?.sampleId != null && obs.sampleId === this.lastSample) return events;
+    if (obs?.sampleId != null) this.lastSample = obs.sampleId;
 
     if (!obs || !obs.present) {
       if (this.present) this.lostAt = now;
       this.present = false;
       this.landmarks = null;
-      // во время рисования камера может на миг потерять руку — линию не рвём
+      // Сохраняем след на миг для обратной связи; при возвращении начнём заново.
       const grace = this.stroke ? LOST_DRAW_MS : LOST_MS;
       if (now - this.lostAt > grace) {
         this.drawState = 'none';
-        if (this.stroke) this.finishStroke(events, minDim);
+        if (this.stroke) events.push({ type: 'trackingLost' });
+        this.cancelStroke();
         this.setPose(POSE.NONE, now, events);
         this.poseHist.length = 0;
         this.fx.reset();
@@ -60,6 +61,13 @@ export class Input {
       return events;
     }
 
+    if (!this.present && this.stroke) {
+      // Never connect two positions across a missing-camera interval.
+      this.cancelStroke();
+      this.fx.reset();
+      this.fy.reset();
+      events.push({ type: 'trackingLost' });
+    }
     this.present = true;
     this.landmarks = obs.landmarks;
     this.palm = obs.palm;
@@ -80,8 +88,16 @@ export class Input {
     }
 
     this.updateStroke(now, minDim, events);
-    this.updatePush(now, events);
+    // Palm power is charged by the scene; no depth/push estimate is required.
     return events;
+  }
+
+  cancelStroke() {
+    this.stroke = null;
+    this.armAnchor = null;
+    this.waitMove = null;
+    this.armingProgress = 0;
+    this.drawState = 'idle';
   }
 
   setPose(pose, now, events) {
@@ -123,7 +139,7 @@ export class Input {
     if (this.pose !== POSE.POINT) {
       if (this.stroke) this.finishStroke(events, minDim);
       this.waitMove = null;
-      this.arm = [];
+      this.armAnchor = null;
       this.drawState = this.present ? 'idle' : 'none';
       return;
     }
@@ -134,26 +150,32 @@ export class Input {
         return;
       }
       this.waitMove = null;
-      this.arm = [];
+      this.armAnchor = null;
     }
     const p = { x: this.tip.x, y: this.tip.y, t: now };
 
     if (!this.stroke) {
-      this.arm = (this.arm ?? []).filter(q => now - q.t <= ARM_MS);
-      this.arm.push(p);
-      const still = now - this.arm[0].t >= ARM_MS * 0.8 && this.arm.every(q => dist(q, p) < unit * 1.5);
+      if (!this.armAnchor || dist(this.armAnchor, p) >= unit * 1.5) this.armAnchor = p;
+      this.armingProgress = Math.min(1, (now - this.armAnchor.t) / ARM_MS);
+      const still = this.armingProgress >= 1;
       if (!still) {
         this.drawState = 'arming';
         return;
       }
       this.stroke = { pts: [], len: 0, startedAt: now };
-      this.arm = [];
+      this.armAnchor = null;
     }
     this.drawState = 'drawing';
+    this.armingProgress = 1;
 
     const pts = this.stroke.pts;
     if (pts.length) this.stroke.len += dist(pts[pts.length - 1], p);
     pts.push(p);
+    if (pts.length > 600 || now - this.stroke.startedAt > 10000) {
+      this.finishStroke(events, minDim);
+      this.waitMove = { x: p.x, y: p.y };
+      return;
+    }
 
     // Руна засчитывается сразу, как только нарисована, — не дожидаясь остановки.
     if (this.earlyCheck && pts.length % 3 === 0 && this.stroke.len > unit * 8 && this.earlyCheck(pts)) {
@@ -183,34 +205,7 @@ export class Input {
     if (s && s.pts.length >= 6 && s.len > minDim * 0.03) events.push({ type: 'stroke', pts: s.pts });
   }
 
-  // Толчок ладонью: видимый размер руки быстро растёт.
-  updatePush(now, events) {
-    if (this.pose !== POSE.PALM) {
-      this.scaleHist.length = 0;
-      this.pushPeak = 1;
-      return;
-    }
-    this.scaleHist.push({ t: now, s: this.scale });
-    while (this.scaleHist.length && now - this.scaleHist[0].t > 600) this.scaleHist.shift();
-    if (now < this.pushCooldown) return;
 
-    const minS = Math.min(...this.scaleHist.map(h => h.s));
-    const ratio = this.scale / minS;
-    if (ratio > PUSH_RATIO) {
-      events.push({ type: 'push', ratio });
-      this.pushCooldown = now + 900;
-      this.scaleHist.length = 0;
-      this.pushPeak = 1;
-      return;
-    }
-    this.pushPeak = Math.max(this.pushPeak, ratio);
-    if (this.pushPeak > WEAK_RATIO && ratio < this.pushPeak - 0.06) {
-      events.push({ type: 'weakPush', ratio: this.pushPeak });
-      this.pushCooldown = now + 600;
-      this.scaleHist.length = 0;
-      this.pushPeak = 1;
-    }
-  }
 }
 
 export const FRAMING_HINTS = {

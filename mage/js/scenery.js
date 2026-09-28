@@ -98,10 +98,17 @@ export class Steppe {
       const a = Math.PI * (0.05 + (i / 8) * 0.9);
       stones.push({ x: cx + Math.cos(a + Math.PI) * rx, y: cy + minDim * 0.1 + Math.sin(a + Math.PI) * ry, h: minDim * (0.1 + 0.06 * Math.sin(i * 1.7) ** 2) });
     }
+    const pool = ctx.createRadialGradient(cx, cy + minDim * .1, 0, cx, cy + minDim * .1, minDim * .42);
+    pool.addColorStop(0, 'rgba(94,213,190,.13)'); pool.addColorStop(1, 'rgba(94,213,190,0)');
+    ctx.fillStyle = pool; ctx.fillRect(cx - minDim * .5, cy - minDim * .4, minDim, minDim);
+    ctx.strokeStyle = 'rgba(111,177,158,.18)'; ctx.lineWidth = 1;
+    for (const k of [1,.88]) { ctx.beginPath(); ctx.ellipse(cx, cy + minDim * .1, rx * k, ry * k, 0, 0, Math.PI * 2); ctx.stroke(); }
     stones.sort((a, b) => a.y - b.y);
     for (const s of stones) {
       const w = s.h * 0.38;
-      ctx.fillStyle = '#0b1416';
+      const material = ctx.createLinearGradient(s.x - w / 2, 0, s.x + w / 2, 0);
+      material.addColorStop(0, '#071116'); material.addColorStop(1, '#284548');
+      ctx.fillStyle = material;
       ctx.beginPath();
       ctx.moveTo(s.x - w / 2, s.y);
       ctx.lineTo(s.x - w * 0.42, s.y - s.h * 0.85);
@@ -109,6 +116,14 @@ export class Steppe {
       ctx.lineTo(s.x + w / 2, s.y);
       ctx.closePath();
       ctx.fill();
+      ctx.strokeStyle = 'rgba(138,207,181,.18)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.strokeStyle = 'rgba(145,210,182,.3)';
+      ctx.beginPath(); ctx.moveTo(s.x, s.y - s.h * .7); ctx.lineTo(s.x - w * .15, s.y - s.h * .5); ctx.lineTo(s.x + w * .15, s.y - s.h * .4); ctx.stroke();
+    }
+    ctx.strokeStyle = '#02080b'; ctx.lineWidth = 2;
+    for (let i = 0; i < 70; i++) {
+      const x = r() * W, y = H * (.94 + r() * .06), h = minDim * (.012 + r() * .045);
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + 3, y - h / 2, x + (r() - .5) * 30, y - h); ctx.stroke();
     }
   }
 
