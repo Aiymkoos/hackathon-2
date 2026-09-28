@@ -30,15 +30,35 @@ const arc = (from, to, n = 40, rx = 0.5, ry = 0.5) =>
     return [Math.cos(a) * rx, Math.sin(a) * ry];
   });
 
+// Треугольник, у которого углы — дуги (как рисует рука в воздухе).
+function roundTri(r = 0.12) {
+  const v = [[0, -0.5], [0.5, 0.43], [-0.5, 0.43]];
+  const out = [];
+  for (let i = 0; i < 3; i++) {
+    const [a, b, c] = [v[i], v[(i + 1) % 3], v[(i + 2) % 3]];
+    const lerp = (p, q, t) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
+    for (let t = r; t <= 1 - r; t += 0.05) out.push(lerp(a, b, t));
+    const p0 = lerp(a, b, 1 - r), p2 = lerp(b, c, r);
+    for (let t = 0; t <= 1; t += 0.2) {
+      const q0 = lerp(p0, b, t), q1 = lerp(b, p2, t);
+      out.push(lerp(q0, q1, t));
+    }
+  }
+  out.push(out[0]);
+  return out;
+}
+
 const cases = [
   ['круг', stroke(arc(0, Math.PI * 2), { perSeg: 2 }), 'circle'],
   ['круг с заходом', stroke(arc(0.3, Math.PI * 2.1), { perSeg: 2 }), 'circle'],
   ['эллипс', stroke(arc(0, Math.PI * 2, 40, 0.5, 0.35), { perSeg: 2 }), 'circle'],
   ['треугольник', stroke(RUNES.triangle.path), 'triangle'],
   ['треугольник с середины', stroke([[0.25, 0], [0.5, 0.43], [-0.5, 0.43], [0, -0.5], [0.22, -0.05]]), 'triangle'],
+  ['скруглённый треугольник', stroke(roundTri(), { perSeg: 1, jitter: 6 }), 'triangle'],
+  ['кривой треугольник, недотянут', stroke([[0, -0.5], [0.45, 0.4], [-0.5, 0.45], [-0.12, -0.25]]), 'triangle'],
   ['молния', stroke(RUNES.zigzag.path), 'zigzag'],
   ['галочка', stroke(RUNES.vee.path), 'vee'],
-  ['незамкнутый круг', stroke(arc(0, Math.PI * 1.45), { perSeg: 2 }), null, 'open', ['circle']],
+  ['незамкнутый круг', stroke(arc(0, Math.PI * 1.35), { perSeg: 2 }), null, 'open', ['circle']],
   ['плоский круг', stroke(arc(0, Math.PI * 2, 40, 0.5, 0.18), { perSeg: 2 }), null, 'squashed', ['circle']],
   ['треугольник-дуга', stroke(arc(0, Math.PI * 2), { perSeg: 2 }), null, 'wrongRune', ['triangle']],
   ['открытый треугольник', stroke([[0, -0.5], [0.5, 0.43], [-0.5, 0.43], [-0.2, -0.1]]), null, 'open', ['triangle']],

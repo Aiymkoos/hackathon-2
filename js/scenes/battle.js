@@ -195,9 +195,22 @@ export class BattleScene {
     this.stats.errors[code] = (this.stats.errors[code] ?? 0) + 1;
   }
 
+  // Руны, которые сейчас можно применить: текущие руны жынов и босса.
+  currentRunes() {
+    return [...new Set([...this.monsters.map(m => m.runes[m.idx]), ...(this.boss ? [this.boss.queue[0]] : [])])];
+  }
+
+  // Проверка во время рисования: руна уже совпала с нужной — атакуем сразу.
+  earlyCheck(pts) {
+    const expected = this.currentRunes();
+    if (!expected.length || this.over) return false;
+    const res = recognize(pts, { minSize: this.app.input.runeMinSize(this.app.minDim), expected });
+    return res.ok && expected.includes(res.rune);
+  }
+
   handleStroke(pts) {
     const { toast, feedback, sfx, minDim } = this.app;
-    const expected = [...new Set([...this.monsters.map(m => m.runes[m.idx]), ...(this.boss ? [this.boss.queue[0]] : [])])];
+    const expected = this.currentRunes();
     this.stats.attempts++;
     const res = recognize(pts, { minSize: this.app.input.runeMinSize(minDim), expected: expected.length ? expected : RUNE_IDS });
     if (res.ok && expected.includes(res.rune)) return this.castRune(res.rune, pts);

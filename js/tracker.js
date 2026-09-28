@@ -17,7 +17,7 @@ export async function createHandTracker({ fileset, model }) {
   const options = delegate => ({
     baseOptions: { modelAssetBuffer: model, delegate },
     runningMode: 'VIDEO',
-    numHands: 1,
+    numHands: 2,
     minHandDetectionConfidence: 0.6,
     minHandPresenceConfidence: 0.6,
     minTrackingConfidence: 0.5,
