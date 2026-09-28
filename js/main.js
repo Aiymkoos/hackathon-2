@@ -5,6 +5,7 @@ import { Effects } from './effects.js';
 import { Toaster } from './ui.js';
 import { layoutSections, drawArms } from './stage.js';
 import { DebugBody } from './debug.js';
+import { preload } from './loader.js';
 import { MenuScene } from './scenes/menu.js';
 import { RehearsalScene } from './scenes/rehearsal.js';
 import { ConcertScene } from './scenes/concert.js';
@@ -134,12 +135,29 @@ function frame(now) {
   if (!app.manual) nextFrame(frame);
 }
 
+// Движок и модель начинают качаться сразу при открытии страницы.
+const loadBar = document.getElementById('loadBar');
+const loadText = document.getElementById('loadText');
+let ready = false;
+const showProgress = p => {
+  loadBar.style.width = `${Math.round(p * 100)}%`;
+  if (!ready) loadText.textContent = `Загружаю распознавание движений: ${Math.round(p * 100)}%`;
+};
+const trackerModule = DEBUG ? null : import('./tracker.js');
+const assets = DEBUG ? null : preload(showProgress);
+assets?.then(() => {
+  ready = true;
+  loadText.textContent = 'Всё загружено — можно начинать';
+}, () => {
+  loadText.textContent = 'Не удалось загрузить модель. Проверь интернет и обнови страницу.';
+});
+
 async function start() {
   startBtn.disabled = true;
   try {
     app.orchestra = new Orchestra(new AudioContext());
     statusEl.textContent = 'Запрашиваю доступ к камере…';
-    const { startCamera, createPoseTracker } = await import('./tracker.js');
+    const { startCamera, createPoseTracker } = DEBUG ? await import('./tracker.js') : await trackerModule;
     try {
       await startCamera(video);
     } catch {
@@ -149,17 +167,18 @@ async function start() {
     if (DEBUG) {
       debugBody = new DebugBody(() => app.sections);
       Object.assign(window, { debugBody, stepFrame: frame }); // пошаговая автопроверка
-    }
-    else {
-      statusEl.textContent = 'Загружаю модель распознавания движений…';
-      tracker = await createPoseTracker();
+    } else {
+      statusEl.textContent = ready ? 'Запускаю распознавание…' : 'Камера готова. Дожидаюсь загрузки модели…';
+      const loaded = await preload(showProgress);
+      statusEl.textContent = 'Запускаю распознавание…';
+      tracker = await createPoseTracker(loaded);
     }
   } catch (e) {
     console.error(e);
     startBtn.disabled = false;
     statusEl.textContent = e.message === 'camera'
       ? 'Нет доступа к камере. Разреши камеру в адресной строке браузера и нажми кнопку ещё раз.'
-      : 'Не удалось загрузить модель. Проверь интернет и обнови страницу.';
+      : 'Не удалось загрузить модель. Проверь интернет и нажми кнопку ещё раз.';
     return;
   }
   document.getElementById('start').hidden = true;
@@ -170,6 +189,7 @@ async function start() {
 resize();
 startBtn.addEventListener('click', start);
 if (DEBUG) {
+  document.querySelector('.progress').hidden = true;
   window.app = app; // для проверки из консоли
   statusEl.textContent = 'Режим отладки: мышь — правая рука, 1/2/3 — указать на группу, B — согнутая рука, U — фермата.';
 }
