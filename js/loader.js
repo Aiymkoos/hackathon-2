@@ -11,7 +11,21 @@ const FILES = {
 // Примерные размеры — если сервер не прислал Content-Length.
 const APPROX = { wasm: 11_756_954, model: 7_819_105 };
 
+// Повторяет загрузку при обрыве связи (до 3 попыток).
 async function download(url, onChunk) {
+  for (let attempt = 1; ; attempt++) {
+    let got = 0;
+    try {
+      return await downloadOnce(url, n => { got += n; onChunk(n); });
+    } catch (e) {
+      onChunk(-got); // откатываем прогресс неудачной попытки
+      if (attempt >= 3) throw e;
+      await new Promise(r => setTimeout(r, 1000 * attempt));
+    }
+  }
+}
+
+async function downloadOnce(url, onChunk) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${url}: ${res.status}`);
   const reader = res.body.getReader();
