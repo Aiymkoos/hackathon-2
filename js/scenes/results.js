@@ -36,8 +36,8 @@ export class ResultsScene {
     const bw = Math.min((W - 60) / 2, minDim * 0.4);
     const bh = Math.max(50, minDim * 0.085);
     this.buttons.forEach((b, i) => b.place(W / 2 - bw - 10 + i * (bw + 20), H - bh - 20, bw, bh));
-    for (const b of this.buttons) if (b.update(dt, body?.rightOk ? body.pointer : null, () => orchestra.blip(660))) return;
-    toast.show('Наведи правую руку на кнопку и подержи', 'info', 0.5);
+    for (const b of this.buttons) if (b.update(dt, body?.pointer ?? null, () => orchestra.blip(660))) return;
+    toast.show('Наведи руку на кнопку и подержи', 'info', 0.5);
   }
 
   render(ctx) {

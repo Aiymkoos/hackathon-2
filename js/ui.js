@@ -106,6 +106,15 @@ export class Toaster {
 }
 
 // Кнопка без мыши: наведи правую руку и подержи.
+// Кнопки, видимые сейчас на экране: по ним работает запасной клик мышью или касание.
+const visible = new Set();
+addEventListener('pointerup', e => {
+  for (const b of visible) {
+    const r = b.rect;
+    if (e.clientX > r.x && e.clientX < r.x + r.w && e.clientY > r.y && e.clientY < r.y + r.h) b.clicked = true;
+  }
+});
+
 export class DwellButton {
   constructor(text, onFire, { hold = 1.1, color = '#8b7dff' } = {}) {
     this.text = text;
@@ -123,7 +132,13 @@ export class DwellButton {
 
   update(dt, tip, onHover) {
     const r = this.rect;
-    this.hover = !!tip && tip.x > r.x && tip.x < r.x + r.w && tip.y > r.y && tip.y < r.y + r.h;
+    const pad = 24; // запас: рука немного дрожит
+    this.hover = !!tip && tip.x > r.x - pad && tip.x < r.x + r.w + pad && tip.y > r.y - pad && tip.y < r.y + r.h + pad;
+    if (this.clicked) {
+      this.clicked = false;
+      this.onFire();
+      return true;
+    }
     if (this.hover) {
       if (this.progress === 0) onHover?.();
       this.progress += dt / this.hold;
@@ -132,11 +147,14 @@ export class DwellButton {
         this.onFire();
         return true;
       }
-    } else this.progress = Math.max(0, this.progress - dt * 2);
+    } else this.progress = Math.max(0, this.progress - dt * 0.7);
     return false;
   }
 
   render(ctx) {
+    visible.add(this);
+    this.seen = performance.now();
+    for (const b of visible) if (performance.now() - b.seen > 300) visible.delete(b);
     const { x, y, w, h } = this.rect;
     ctx.save();
     roundRect(ctx, x, y, w, h, h / 2);

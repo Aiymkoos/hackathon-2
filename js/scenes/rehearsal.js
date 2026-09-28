@@ -58,7 +58,7 @@ export class RehearsalScene {
 
   update(dt, now, events) {
     const { conductor, toast, body, orchestra, sections } = this.app;
-    const tip = body?.rightOk ? body.pointer : null;
+    const tip = body?.pointer ?? null;
 
     if (this.finished) {
       const { W, H, minDim } = this.app;

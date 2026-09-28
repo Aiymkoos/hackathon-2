@@ -12,6 +12,14 @@ const deg = rad => (rad * 180) / Math.PI;
 // Индексы точек MediaPipe Pose (лево/право — самого человека)
 const NOSE = 0, L_SHOULDER = 11, R_SHOULDER = 12, L_ELBOW = 13, R_ELBOW = 14, L_WRIST = 15, R_WRIST = 16, R_INDEX = 20;
 
+const L_INDEX = 19;
+function pickPointer(lm, vis) {
+  const hands = [[R_WRIST, R_INDEX], [L_WRIST, L_INDEX]].filter(([w]) => vis(w));
+  if (!hands.length) return null;
+  const [w, i] = hands.sort((a, b) => lm[a[0]].y - lm[b[0]].y)[0];
+  return vis(i) ? lm[i] : lm[w];
+}
+
 /** lm — 33 точки в пикселях экрана с полем visibility. */
 export function readBody(lm) {
   const vis = i => (lm[i].visibility ?? 1) > 0.5;
@@ -21,7 +29,8 @@ export function readBody(lm) {
     ls: lm[L_SHOULDER], rs: lm[R_SHOULDER],
     le: lm[L_ELBOW], re: lm[R_ELBOW],
     lw: lm[L_WRIST], rw: lm[R_WRIST],
-    pointer: vis(R_INDEX) ? lm[R_INDEX] : lm[R_WRIST],
+    // курсор для кнопок — та рука, что поднята выше (любая)
+    pointer: pickPointer(lm, vis),
     shouldersOk: vis(L_SHOULDER) && vis(R_SHOULDER),
     leftOk: vis(L_WRIST) && vis(L_ELBOW),
     rightOk: vis(R_WRIST),

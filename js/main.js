@@ -2,7 +2,7 @@
 import { Conductor, readBody } from './conductor.js';
 import { Orchestra } from './music.js';
 import { Effects } from './effects.js';
-import { Toaster } from './ui.js';
+import { Toaster, label } from './ui.js';
 import { layoutSections, drawArms } from './stage.js';
 import { DebugBody } from './debug.js';
 import { preload } from './loader.js';
@@ -85,7 +85,7 @@ function drawBackground() {
 // Курсор правой руки для кнопок «наведи и держи».
 function drawPointer() {
   const { body, time } = app;
-  if (!body?.rightOk || app.scene === app.scenes.concert) return;
+  if (!body?.pointer || app.scene === app.scenes.concert) return;
   const p = body.pointer;
   ctx.save();
   ctx.strokeStyle = '#ffd166';
@@ -98,6 +98,15 @@ function drawPointer() {
 
 // В отладке кадры идут и в скрытой вкладке (для автопроверки).
 const nextFrame = cb => (DEBUG && document.hidden ? setTimeout(() => cb(performance.now()), 16) : requestAnimationFrame(cb));
+
+// Что видит камера — чтобы было понятно, почему жест не срабатывает.
+function drawBodyStatus() {
+  if (app.scene === app.scenes.concert) return;
+  const b = app.body;
+  const mark = ok => (ok ? '✓' : '✗');
+  const text = b ? `вижу: плечи ${mark(b.shouldersOk)} · правая рука ${mark(b.rightOk)} · левая рука ${mark(b.leftOk)}` : 'не вижу человека в кадре';
+  label(ctx, text, app.W - 16, 20, { size: 13, weight: 500, align: 'right', color: b?.shouldersOk ? '#cfc4ff' : '#ff8fa3' });
+}
 
 let tracker = null;
 let debugBody = null;
@@ -128,6 +137,7 @@ function frame(now) {
   ctx.restore();
   if (app.body?.shouldersOk) drawArms(ctx, app.body);
   drawPointer();
+  drawBodyStatus();
   app.scene.renderOverlay?.(ctx);
   app.toast.render(ctx, app.W, app.H, app.minDim, app.scene.toastBottom ?? app.H - 12);
   app.fx.renderFlash(ctx, app.W, app.H);
