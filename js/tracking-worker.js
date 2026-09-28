@@ -7,7 +7,7 @@ self.onmessage = async ({ data }) => {
       const { HandLandmarker } = await import('./../vendor/mediapipe/vision_bundle.mjs');
       const options = delegate => ({
         baseOptions: { modelAssetBuffer: data.model, delegate },
-        runningMode: 'VIDEO', numHands: 1,
+        runningMode: 'VIDEO', numHands: 2,
         minHandDetectionConfidence: 0.5, minHandPresenceConfidence: 0.5, minTrackingConfidence: 0.5,
       });
       try { landmarker = await HandLandmarker.createFromOptions(data.fileset, options('GPU')); }

@@ -80,14 +80,39 @@ function handObs(norm, world) {
 }
 
 // Результат MediaPipe → наблюдение для каждой руки (Right / Left).
+// Руки различаем по положению на экране, а не по метке MediaPipe «левая/правая»:
+// она иногда перескакивает, и линия обрывалась бы посреди руны.
+// Каждая рука держит свой «слот», пока её видно рядом с прежним местом.
+const lastPos = { Right: null, Left: null };
+const gap = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+function assignHands(hands, now) {
+  const recent = k => lastPos[k] && now - lastPos[k].t < 400;
+  let keys;
+  if (hands.length === 1) {
+    const p = hands[0].palm;
+    const near = ['Right', 'Left'].filter(recent).sort((a, b) => gap(lastPos[a], p) - gap(lastPos[b], p))[0];
+    keys = [near ?? (p.x < app.W / 2 ? 'Left' : 'Right')];
+  } else {
+    const [a, b] = hands;
+    if (recent('Left') && recent('Right')) {
+      const keep = gap(lastPos.Left, a.palm) + gap(lastPos.Right, b.palm);
+      const swap = gap(lastPos.Right, a.palm) + gap(lastPos.Left, b.palm);
+      keys = keep <= swap ? ['Left', 'Right'] : ['Right', 'Left'];
+    } else keys = a.palm.x <= b.palm.x ? ['Left', 'Right'] : ['Right', 'Left'];
+  }
+  hands.forEach((h, i) => { lastPos[keys[i]] = { x: h.palm.x, y: h.palm.y, t: now }; });
+  return keys;
+}
+
 function buildObs(res) {
   const out = { Right: { present: false }, Left: { present: false } };
   rawHands = {};
-  (res.landmarks ?? []).forEach((norm, i) => {
-    let key = 'Right'; // One active hand: handedness flips must not cut a stroke.
-    if (out[key].present) key = key === 'Right' ? 'Left' : 'Right'; // обе «правые» — разводим
-    out[key] = { ...handObs(norm, res.worldLandmarks?.[i] ?? null), sampleId: res.sampleId };
-    rawHands[key] = norm;
+  const list = (res.landmarks ?? []).slice(0, 2);
+  const hands = list.map((norm, i) => ({ ...handObs(norm, res.worldLandmarks?.[i] ?? null), sampleId: res.sampleId }));
+  const keys = assignHands(hands, performance.now());
+  hands.forEach((h, i) => {
+    out[keys[i]] = h;
+    rawHands[keys[i]] = list[i];
   });
   return out;
 }

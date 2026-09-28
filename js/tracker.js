@@ -17,7 +17,7 @@ export async function createHandTracker({ fileset, model }) {
   let lastVideoTime = -1, lastSubmit = -Infinity, submittedAt = 0, recovering = false;
   const metrics = { mode: 'starting', inferenceMs: 0, samples: 0 };
   const options = delegate => ({
-    baseOptions: { modelAssetBuffer: model, delegate }, runningMode: 'VIDEO', numHands: 1,
+    baseOptions: { modelAssetBuffer: model, delegate }, runningMode: 'VIDEO', numHands: 2,
     minHandDetectionConfidence: 0.5, minHandPresenceConfidence: 0.5, minTrackingConfidence: 0.5,
   });
   async function fallback() {
