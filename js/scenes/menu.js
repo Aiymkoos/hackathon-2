@@ -15,6 +15,7 @@ export class MenuScene {
   }
 
   enter() {
+    this.buttons.forEach(b => { b.progress = 0; b.clicked = false; });
     this.app.toast.clear();
     this.records = store.records().slice(0, 5);
     this.firstTime = !store.academyDone();
@@ -25,7 +26,7 @@ export class MenuScene {
     const bw = Math.min(W - 40, minDim * 0.5);
     const bh = Math.max(50, minDim * 0.085);
     this.buttons.forEach((b, i) => b.place((W - bw) / 2, H * 0.44 + i * (bh + 14), bw, bh));
-    const tip = input.present ? input.tip : null;
+    const tip = input.present && input.pose === POSE.POINT ? input.tip : null;
     for (const b of this.buttons) if (b.update(dt, tip, this.app.sfx)) return;
     if (events.some(e => e.type === 'pose' && e.pose === POSE.THUMB)) {
       this.app.go(this.firstTime ? 'academy' : 'battle');

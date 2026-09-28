@@ -34,6 +34,8 @@ const app = {
   scene: null,
   scenes: {},
   go(name, data) {
+    for (const h of Object.values(this.hands)) h.cancelStroke();
+    this.feedback.clear();
     this.scene = this.scenes[name];
     this.scene.enter?.(data);
   },
@@ -80,9 +82,9 @@ function buildObs(res) {
   const out = { Right: { present: false }, Left: { present: false } };
   rawHands = {};
   (res.landmarks ?? []).forEach((norm, i) => {
-    let key = res.handedness?.[i]?.[0]?.categoryName === 'Left' ? 'Left' : 'Right';
+    let key = 'Right'; // One active hand: handedness flips must not cut a stroke.
     if (out[key].present) key = key === 'Right' ? 'Left' : 'Right'; // обе «правые» — разводим
-    out[key] = handObs(norm, res.worldLandmarks?.[i] ?? null);
+    out[key] = { ...handObs(norm, res.worldLandmarks?.[i] ?? null), sampleId: res.sampleId };
     rawHands[key] = norm;
   });
   return out;
@@ -133,7 +135,7 @@ function drawCameraWindow(dt) {
   ctx.stroke();
   ctx.restore();
   const known = input.present && input.pose !== POSE.OTHER;
-  const DRAW = { arming: 'замри на миг — и рисуй', drawing: 'рисую — руна сработает сама', checking: 'проверяю · сдвинь палец для новой руны' };
+  const DRAW = { arming: 'готовлю перо · замри на миг', drawing: 'рисую · остановись, чтобы применить', checking: 'принято · перемести палец и замри' };
   const text = input.pose === POSE.POINT && DRAW[input.drawState] ? DRAW[input.drawState] : POSE_NAMES[input.pose];
   label(ctx, input.present ? text : 'подними руку', x + 10, y + 13, { size: 12, weight: 700, color: known ? C.teal : input.present ? C.amber : C.danger, align: 'left' });
 }
@@ -158,6 +160,13 @@ function drawCursor(input) {
   ctx.arc(p.x, p.y, 10 + Math.sin(time * 5) * 1.5, 0, Math.PI * 2);
   ctx.stroke();
   ctx.setLineDash([]);
+  if (input.drawState === 'arming') {
+    ctx.strokeStyle = C.gold;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 17, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * input.armingProgress);
+    ctx.stroke();
+  }
   ctx.fillStyle = C.ivory;
   ctx.beginPath();
   ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
@@ -174,23 +183,44 @@ let tracker = null;
 let debugHand = null;
 let lastObs = { Right: { present: false }, Left: { present: false } };
 let last = performance.now();
+let sampleAt = -Infinity;
+let wasHidden = false;
 
 function frame(now) {
   const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
   last = now;
   app.time += dt;
 
-  if (debugHand) lastObs = { Right: debugHand.obs(now), Left: { present: false } };
-  else if (tracker) {
+  if (document.hidden && !DEBUG) {
+    wasHidden = true;
+    nextFrame(frame);
+    return;
+  }
+  if (wasHidden) {
+    for (const h of Object.values(app.hands)) { h.cancelStroke(); h.present = false; }
+    sampleAt = -Infinity;
+    wasHidden = false;
+  }
+  let fresh = false;
+  if (debugHand) {
+    lastObs = { Right: { ...debugHand.obs(now), sampleId: now }, Left: { present: false } };
+    fresh = true;
+    sampleAt = now;
+  } else if (tracker) {
     const res = tracker.detect(video, now);
-    if (res) lastObs = buildObs(res);
+    if (res && now - res.sampleId < 350) {
+      lastObs = buildObs(res);
+      fresh = true;
+      sampleAt = now;
+    }
   }
   // Сцена может сразу засчитать руну, как только она нарисована (earlyCheck).
   const early = app.scene.earlyCheck?.bind(app.scene) ?? null;
   const events = [];
   for (const [key, inp] of Object.entries(app.hands)) {
     inp.earlyCheck = early;
-    for (const e of inp.update(lastObs[key], now, app.minDim)) events.push({ ...e, hand: key });
+    const obs = fresh ? lastObs[key] : now - sampleAt > 350 ? { present: false } : null;
+    if (obs) for (const e of inp.update(obs, now, app.minDim)) events.push({ ...e, hand: key });
   }
   app.input = pickPrimary();
   const { input, fx } = app;
@@ -245,11 +275,11 @@ async function start() {
   app.sfx.unlock();
   try {
     statusEl.textContent = 'Запрашиваю доступ к камере…';
-    const { startCamera, createHandTracker } = DEBUG ? await import('./tracker.js') : await trackerModule;
-    try {
-      await startCamera(video);
-    } catch (e) {
-      if (!DEBUG) throw new Error('camera');
+    let createHandTracker;
+    if (!DEBUG) {
+      const module = await trackerModule;
+      createHandTracker = module.createHandTracker;
+      try { await module.startCamera(video); } catch (e) { throw new Error('camera'); }
     }
     resize();
     if (DEBUG) {
@@ -266,7 +296,8 @@ async function start() {
     startBtn.disabled = false;
     statusEl.textContent = e.message === 'camera'
       ? 'Нет доступа к камере. Разреши камеру в адресной строке браузера и нажми кнопку ещё раз.'
-      : 'Не удалось загрузить модель. Проверь интернет и нажми кнопку ещё раз.';
+      : 'Не удалось запустить распознавание. Проверь интернет и нажми кнопку ещё раз.';
+    video.srcObject?.getTracks().forEach(track => track.stop());
     return;
   }
   document.getElementById('start').hidden = true;
@@ -278,4 +309,8 @@ resize();
 startBtn.addEventListener('click', start);
 if (DEBUG) document.querySelector('.progress').hidden = true;
 if (DEBUG) window.app = app; // для проверки из консоли
-if (DEBUG) statusEl.textContent = 'Режим отладки: мышь — палец, F — кулак, P — ладонь, U — 👍, пробел — толчок.';
+if (DEBUG) {
+  loadText.textContent = 'Тестовый режим без камеры';
+  statusEl.textContent = 'ТЕСТ: зажми мышь — перо, F — щит, P — заряд, U — старт. Это не проверка камеры.';
+}
+addEventListener('pagehide', () => { tracker?.close(); video.srcObject?.getTracks().forEach(t => t.stop()); });

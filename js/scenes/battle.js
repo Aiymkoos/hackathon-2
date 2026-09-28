@@ -42,6 +42,9 @@ export class BattleScene {
     this.boss = null;
     this.waveIdx = -1;
     this.over = 0;
+    this.paused = false;
+    this.resumeT = 0;
+    this.activeSeconds = 0;
     this.stats = { attempts: 0, hits: 0, errors: {}, blocks: 0, maxCombo: 0, ults: 0, start: performance.now() };
     this.app.toast.clear();
     this.app.feedback.clear();
@@ -110,7 +113,7 @@ export class BattleScene {
     const was = this.mana;
     this.mana = Math.min(100, this.mana + n);
     if (was < 100 && this.mana >= 100) {
-      this.app.toast.show('Мана заполнена! Раскрой ладонь 🖐 и толкни её к камере', 'success', 3);
+      this.app.toast.show('Сила собрана! Удержи открытую ладонь — заряди взрыв', 'success', 3);
       this.app.sfx.success();
     }
   }
@@ -205,12 +208,13 @@ export class BattleScene {
     const expected = this.currentRunes();
     if (!expected.length || this.over) return false;
     const res = recognize(pts, { minSize: this.app.input.runeMinSize(this.app.minDim), expected });
-    return res.ok && expected.includes(res.rune);
+    return res.ok && ['circle', 'triangle'].includes(res.rune) && expected.includes(res.rune);
   }
 
   handleStroke(pts) {
     const { toast, feedback, sfx, minDim } = this.app;
     const expected = this.currentRunes();
+    if (!expected.length) return; // No targets: practice drawing is not scored.
     this.stats.attempts++;
     const res = recognize(pts, { minSize: this.app.input.runeMinSize(minDim), expected: expected.length ? expected : RUNE_IDS });
     if (res.ok && expected.includes(res.rune)) return this.castRune(res.rune, pts);
@@ -226,28 +230,32 @@ export class BattleScene {
     sfx.error();
   }
 
-  handlePush() {
-    const { toast, sfx } = this.app;
-    if (this.mana < 100) {
-      toast.show(`Маны пока ${this.mana}% — побеждай жынов, чтобы накопить взрыв`, 'info');
-    } else if (this.charge < 1) {
-      this.countError('earlyPush');
-      toast.show('Рано! Держи ладонь раскрытой, пока шар не зарядится полностью', 'error');
-      sfx.error();
-    } else this.ult();
-  }
-
   update(dt, now, events) {
     const { input, toast, fx, sfx, minDim } = this.app;
 
     if (this.over) {
       this.over -= dt;
-      if (this.over <= 0) this.app.go('results', { win: this.win, score: this.score, hearts: this.hearts, stats: this.stats });
+      if (this.over <= 0) this.app.go('results', { win: this.win, score: this.score, hearts: this.hearts, stats: { ...this.stats, activeSeconds: this.activeSeconds } });
       return;
     }
 
-    // Рука пропала — время замедляется, чтобы не проиграть из-за камеры.
-    const gdt = input.present ? dt : dt * 0.25;
+    // Camera loss is a technical pause, never a player mistake.
+    if (!input.present) {
+      this.paused = true;
+      this.resumeT = 0.65;
+      toast.show('Пауза · верни руку в кадр', 'info', 0.5);
+      return;
+    }
+    if (this.paused) {
+      this.resumeT -= dt;
+      toast.show('Рука найдена · продолжаем', 'info', 0.5);
+      if (this.resumeT > 0) return;
+      this.paused = false;
+      for (const h of Object.values(this.app.hands)) h.cancelStroke();
+      return;
+    }
+    this.activeSeconds += dt;
+    const gdt = dt;
     const core = this.core;
     const wave = this.wave;
 
@@ -303,7 +311,7 @@ export class BattleScene {
       m.y += (dy / d) * m.speed * gdt;
     }
 
-    const shielded = input.pose === POSE.FIST;
+    const shielded = input.present && input.pose === POSE.FIST;
     for (const s of [...this.shots]) {
       s.t += gdt / SHOT_TIME;
       if (s.t < 1) continue;
@@ -324,18 +332,14 @@ export class BattleScene {
     // заряд маны на раскрытой ладони
     if (input.pose === POSE.PALM && this.mana >= 100) {
       const before = this.charge;
-      this.charge = Math.min(1, this.charge + dt / 0.8);
+      this.charge = Math.min(1, this.charge + dt / 1.2);
       if (Math.floor(before * 8) !== Math.floor(this.charge * 8)) sfx.charge(this.charge);
-      if (this.charge >= 1) toast.show('Заряжено! Резко толкни ладонь к камере', 'success', 0.5);
+      if (this.charge >= 1) this.ult();
     } else this.charge = Math.max(0, this.charge - dt * 1.5);
 
     for (const e of events) {
       if (e.type === 'stroke') this.handleStroke(e.pts);
-      else if (e.type === 'push') this.handlePush();
-      else if (e.type === 'weakPush' && this.charge >= 1) {
-        toast.show('Толчок слишком слабый — двигай ладонь к камере резче и ближе', 'error');
-        sfx.error();
-      }
+      else if (e.type === 'trackingLost') toast.show('Рука пропала. Начни знак снова — без штрафа', 'info', 2);
     }
 
     this.contextHints(now);
@@ -344,7 +348,7 @@ export class BattleScene {
   // Подсказки о позе руки — только когда они нужны прямо сейчас.
   contextHints(now) {
     const { input, toast } = this.app;
-    if (!input.present) return toast.show('Покажи руку — время замедлено', 'info', 0.4);
+    if (!input.present) return;
     if (this.shots.length && input.pose !== POSE.FIST) {
       if (input.near === POSE.FIST && input.hint) return toast.show(input.hint, 'error', 0.4);
       return toast.show('Летит огонь! Сожми кулак — поставь щит', 'warn', 0.4);
@@ -421,7 +425,7 @@ export class BattleScene {
     const rows = [
       ...RUNE_IDS.map(id => ({ rune: id, text: `${RUNES[id].name} — ${RUNES[id].spell.toLowerCase()}` })),
       { icon: 'fist', text: 'Кулак — щит' },
-      { icon: 'palm', text: 'Ладонь, толчок — взрыв' },
+      { icon: 'palm', text: 'Ладонь 1,2 с — взрыв' },
     ];
     const rh = s * 1.15, w = s * 9.5, h = rows.length * rh + 14;
     const x = W - w - 16, y = H - h - 16;

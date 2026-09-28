@@ -15,6 +15,7 @@ export class ResultsScene {
   }
 
   enter(data) {
+    this.buttons.forEach(b => { b.progress = 0; b.clicked = false; });
     this.data = data;
     const { stats } = data;
     this.rank = store.addRecord({ score: data.score, win: data.win, date: new Date().toISOString().slice(0, 10) });
@@ -22,7 +23,7 @@ export class ResultsScene {
     this.accuracy = stats.attempts ? Math.round((stats.hits / stats.attempts) * 100) : 0;
     const top = Object.entries(stats.errors).sort((a, b) => b[1] - a[1])[0];
     this.topError = top ? { ...ERRORS[top[0]], count: top[1] } : null;
-    this.time = Math.round((performance.now() - stats.start) / 1000);
+    this.time = Math.round(stats.activeSeconds ?? (performance.now() - stats.start) / 1000);
     this.app.toast.clear();
   }
 
@@ -31,7 +32,7 @@ export class ResultsScene {
     const bw = Math.min((W - 60) / 2, minDim * 0.4);
     const bh = Math.max(52, minDim * 0.09);
     this.buttons.forEach((b, i) => b.place(W / 2 - bw - 10 + i * (bw + 20), H - bh - minDim * 0.14, bw, bh));
-    for (const b of this.buttons) if (b.update(dt, input.present ? input.tip : null, this.app.sfx)) return;
+    for (const b of this.buttons) if (b.update(dt, input.present && input.pose === POSE.POINT ? input.tip : null, this.app.sfx)) return;
     if (events.some(e => e.type === 'pose' && e.pose === POSE.THUMB)) this.app.go('battle');
     this.app.toast.show('Наведи палец на кнопку и подержи · большой палец вверх — ещё раз', 'info', 0.5);
   }

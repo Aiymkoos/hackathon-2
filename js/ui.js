@@ -208,6 +208,7 @@ export class Toaster {
 const visible = new Set();
 addEventListener('pointerup', e => {
   for (const b of visible) {
+    if (performance.now() - b.seen > 150) continue;
     const r = b.rect;
     if (e.clientX > r.x && e.clientX < r.x + r.w && e.clientY > r.y && e.clientY < r.y + r.h) b.clicked = true;
   }
@@ -230,7 +231,7 @@ export class DwellButton {
 
   update(dt, tip, sfx) {
     const r = this.rect;
-    const pad = 24; // запас: рука немного дрожит
+    const pad = Math.min(8, r.h * 0.1); // запас: рука немного дрожит
     this.hover = !!tip && tip.x > r.x - pad && tip.x < r.x + r.w + pad && tip.y > r.y - pad && tip.y < r.y + r.h + pad;
     if (this.clicked) {
       this.clicked = false;

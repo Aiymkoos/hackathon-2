@@ -1,0 +1,4 @@
+{
+  "name": "siqyrshy", "private": true, "type": "module",
+  "scripts": { "test": "node tests/runes.test.mjs && node --test tests/game.test.mjs", "serve": "python3 -m http.server 5173" }
+}
